@@ -10,6 +10,7 @@ interface FileContextType {
   updateFileGroup: (fileId: string, group: ImageGroup) => void;
   updateFileCategory: (fileId: string, category: ImageCategory) => void;
   deleteFile: (fileId: string) => void;
+  updateFile: (fileId: string, updates: Partial<DentalFile>) => void;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -52,6 +53,12 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     setFiles(prev => prev.filter(file => file.id !== fileId));
   }, []);
 
+  const updateFile = useCallback((fileId: string, updates: Partial<DentalFile>) => {
+    setFiles(prev => prev.map(file => 
+      file.id === fileId ? { ...file, ...updates } : file
+    ));
+  }, []);
+
   return (
     <FileContext.Provider value={{
       files,
@@ -61,6 +68,7 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
       updateFileGroup,
       updateFileCategory,
       deleteFile,
+      updateFile,
     }}>
       {children}
     </FileContext.Provider>
