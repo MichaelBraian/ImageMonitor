@@ -11,10 +11,7 @@ export const PatientList: React.FC = () => {
   }, [execute, fetchPatients]);
 
   if (isLoading) return <div>Loading patients...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (patients.length === 0) {
-    return <div>No patients found. Add a new patient to get started.</div>;
-  }
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <ul>

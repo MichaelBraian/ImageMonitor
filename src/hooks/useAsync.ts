@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export function useAsync<T, E = string>() {
+export function useAsync<T, E = Error>() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<E | null>(null);
   const [data, setData] = useState<T | null>(null);
@@ -13,8 +13,13 @@ export function useAsync<T, E = string>() {
       setData(result);
       return result;
     } catch (e) {
-      setError(e as E);
-      throw e;
+      const error = e as E;
+      console.error('Async operation failed:', error);
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack);
+      }
+      setError(error);
+      throw error;
     } finally {
       setIsLoading(false);
     }

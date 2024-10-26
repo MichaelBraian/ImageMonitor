@@ -9,6 +9,7 @@ import { storage, auth } from '../firebase';
 import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from '../context/AuthContext';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState(auth.currentUser);
+  const { user } = useAuth();
   const { addFile } = useFiles();
   const { updatePatient } = usePatients();
 
@@ -90,18 +91,15 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   }, []);
 
   const handleUpload = async () => {
-    if (selectedFiles.length === 0 || !currentUser) return;
-
-    setIsUploading(true);
-    setError(null);
-    const uploadedFiles = [];
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
 
     try {
       for (const file of selectedFiles) {
         const fileId = uuidv4();
-        const fileExtension = file.file.name.split('.').pop();
-        const fileName = `${fileId}.${fileExtension}`;
-        const storageRef = ref(storage, `images/${currentUser.uid}/${fileName}`);
+        const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
         
         const snapshot = await uploadBytes(storageRef, file.file);
         const downloadURL = await getDownloadURL(snapshot.ref);
@@ -112,28 +110,17 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           name: file.file.name,
           type: file.fileType,
           format: file.format,
-          userId: currentUser.uid,
+          userId: user.uid,
+          patientId: patientId,
           createdAt: new Date().toISOString()
         };
 
-        uploadedFiles.push(fileData);
+        await addDoc(collection(db, 'files'), fileData);
       }
 
-      // Update Firestore
-      const patientRef = doc(db, 'patients', patientId);
-      await updateDoc(patientRef, {
-        files: arrayUnion(...uploadedFiles),
-        imageCount: uploadedFiles.length,
-        lastImageDate: new Date().toISOString()
-      });
-
-      setSelectedFiles([]);
       onClose();
     } catch (err) {
       console.error("Error in handleUpload:", err);
-      setError("An error occurred while uploading files. Please try again.");
-    } finally {
-      setIsUploading(false);
     }
   };
 

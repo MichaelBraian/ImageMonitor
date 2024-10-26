@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { v4 as uuidv4 } from 'uuid';
 import { addDoc, collection, getDocs, updateDoc, doc, getDoc, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 
 export interface Patient {
   id: string;
@@ -24,6 +25,7 @@ interface PatientContextType {
 const PatientContext = createContext<PatientContextType | undefined>(undefined);
 
 export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
 
   const fetchPatients = async () => {
@@ -41,25 +43,19 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const addPatient = async (patient: Omit<Patient, 'id' | 'userId' | 'createdAt'>): Promise<Patient> => {
-    try {
-      if (!auth.currentUser) {
-        throw new Error('User must be authenticated to add a patient');
-      }
-      const newPatient = {
-        ...patient,
-        userId: auth.currentUser.uid,
-        createdAt: new Date().toISOString(),
-        imageCount: 0, // Initialize with 0 images
-        lastImageDate: new Date().toISOString() // Set to current date
-      };
-      const docRef = await addDoc(collection(db, 'patients'), newPatient);
-      const addedPatient = { id: docRef.id, ...newPatient };
-      setPatients(prev => [...prev, addedPatient]);
-      return addedPatient;
-    } catch (e) {
-      console.error("Error adding patient: ", e);
-      throw e;
+    if (!user) {
+      throw new Error('User must be authenticated to add a patient');
     }
+    const newPatient = {
+      ...patient,
+      userId: user.uid,
+      createdAt: new Date().toISOString(),
+      imageCount: 0,
+      lastImageDate: new Date().toISOString()
+    };
+    const docRef = await addDoc(collection(db, 'patients'), newPatient);
+    const addedPatient = { id: docRef.id, ...newPatient };
+    return addedPatient;
   };
 
   const updatePatient = async (id: string, patientUpdate: Partial<Patient>): Promise<void> => {
