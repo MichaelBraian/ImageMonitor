@@ -24,3 +24,13 @@ Thumbs.db
 
 # Vite
 .vite
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Firebase
+serviceAccountKey.json
+src/serviceAccountKey.json
