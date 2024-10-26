@@ -51,8 +51,9 @@ export interface FileWithPreview extends File {
 
 export type FileType = '2D' | '3D';
 
-export interface PreviewFile extends File {
+export interface PreviewFile {
   id: string;
+  file: File;
   preview?: string;
   fileType: FileType;
   format: '2D' | 'PLY' | 'STL';

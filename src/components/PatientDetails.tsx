@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../firebase/config';
 import { ImageUploadModal } from './ImageUploadModal';
 import { useParams } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
@@ -70,11 +70,13 @@ export function PatientDetails() {
           ))}
         </ul>
       )}
-      <ImageUploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        patientId={patientId || ''}
-      />
+      {isUploadModalOpen && patientId && (
+        <ImageUploadModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          patientId={patientId}
+        />
+      )}
     </div>
   );
 }

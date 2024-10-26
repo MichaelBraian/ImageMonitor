@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { X, Upload, ImageIcon, Loader2, FileType as FileTypeIcon } from 'lucide-react';
 import { useFiles } from '../context/FileContext';
 import { usePatients } from '../context/PatientContext';
-import { FileType, DentalFile, ImageCategory, ImageGroup } from '../types';
+import { FileType, DentalFile, ImageCategory, ImageGroup, PreviewFile } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, db, auth } from '../firebase/config';
@@ -14,14 +14,6 @@ interface ImageUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   patientId: string;
-}
-
-interface PreviewFile {
-  id: string;
-  file: File;
-  preview?: string;
-  fileType: FileTypeEnum;
-  format: '2D' | 'PLY' | 'STL';
 }
 
 export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModalProps) {
@@ -80,7 +72,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           id: uuidv4(),
           file,
           preview,
-          fileType: fileType as FileTypeEnum,
+          fileType: fileType as FileType,
           format,
         };
       }));
