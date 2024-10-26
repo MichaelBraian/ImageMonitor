@@ -34,10 +34,10 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   const { updatePatient } = usePatients();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (user) {
-        console.log('User is signed in:', user.uid);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      // Instead of setCurrentUser, we're using the user from useAuth
+      if (currentUser) {
+        console.log('User is signed in:', currentUser.uid);
       } else {
         console.log('No user is signed in.');
       }
