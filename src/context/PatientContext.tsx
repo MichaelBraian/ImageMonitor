@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { addDoc, collection, getDocs, updateDoc, doc, getDoc, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from './AuthContext';
 
 export interface Patient {
   id: string;
@@ -16,7 +15,7 @@ export interface Patient {
 interface PatientContextType {
   patients: Patient[];
   fetchPatients: () => Promise<void>;
-  addPatient: (patient: Omit<Patient, 'id'>) => Promise<Patient>;
+  addPatient: (patient: Omit<Patient, 'id' | 'userId' | 'createdAt'>) => Promise<Patient>;
   updatePatient: (id: string, patient: Partial<Patient>) => Promise<void>;
   getPatient: (id: string) => Promise<Patient | null>;
   searchPatients: (query: string) => Patient[];
@@ -25,27 +24,19 @@ interface PatientContextType {
 const PatientContext = createContext<PatientContextType | undefined>(undefined);
 
 export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const { user } = useAuth();
 
   const fetchPatients = async () => {
-    try {
-      const q = query(collection(db, 'patients'), where('userId', '==', auth.currentUser?.uid));
-      const querySnapshot = await getDocs(q);
-      const fetchedPatients = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Patient));
-      setPatients(fetchedPatients);
-    } catch (e) {
-      console.error("Error fetching patients: ", e);
-    }
+    if (!user) return;
+    const q = query(collection(db, 'patients'), where('userId', '==', user.uid));
+    const querySnapshot = await getDocs(q);
+    const fetchedPatients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
+    setPatients(fetchedPatients);
   };
 
   const addPatient = async (patient: Omit<Patient, 'id' | 'userId' | 'createdAt'>): Promise<Patient> => {
-    if (!user) {
-      throw new Error('User must be authenticated to add a patient');
-    }
+    if (!user) throw new Error('User must be authenticated to add a patient');
     const newPatient = {
       ...patient,
       userId: user.uid,
@@ -55,31 +46,18 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     const docRef = await addDoc(collection(db, 'patients'), newPatient);
     const addedPatient = { id: docRef.id, ...newPatient };
+    setPatients(prev => [...prev, addedPatient]);
     return addedPatient;
   };
 
   const updatePatient = async (id: string, patientUpdate: Partial<Patient>): Promise<void> => {
-    try {
-      await updateDoc(doc(db, 'patients', id), patientUpdate);
-      setPatients(prev => prev.map(p => p.id === id ? { ...p, ...patientUpdate } : p));
-    } catch (e) {
-      console.error("Error updating patient: ", e);
-      throw e;
-    }
+    await updateDoc(doc(db, 'patients', id), patientUpdate);
+    setPatients(prev => prev.map(p => p.id === id ? { ...p, ...patientUpdate } : p));
   };
 
   const getPatient = async (id: string): Promise<Patient | null> => {
-    try {
-      const docSnap = await getDoc(doc(db, 'patients', id));
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as Patient;
-      } else {
-        return null;
-      }
-    } catch (e) {
-      console.error("Error getting patient: ", e);
-      throw e;
-    }
+    const docSnap = await getDoc(doc(db, 'patients', id));
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Patient : null;
   };
 
   const searchPatients = (query: string): Patient[] => {

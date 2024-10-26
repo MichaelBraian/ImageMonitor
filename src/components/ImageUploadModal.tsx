@@ -92,9 +92,12 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
 
   const handleUpload = async () => {
     if (!user) {
-      console.error('User not authenticated');
+      setError('User must be authenticated to upload files');
       return;
     }
+
+    setIsUploading(true);
+    setError(null);
 
     try {
       for (const file of selectedFiles) {
@@ -111,16 +114,26 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           type: file.fileType,
           format: file.format,
           userId: user.uid,
-          patientId: patientId,
+          patientId,
           createdAt: new Date().toISOString()
         };
 
         await addDoc(collection(db, 'files'), fileData);
+        await addFile(fileData);
       }
 
+      await updatePatient(patientId, {
+        imageCount: selectedFiles.length,
+        lastImageDate: new Date().toISOString()
+      });
+
+      setSelectedFiles([]);
       onClose();
     } catch (err) {
       console.error("Error in handleUpload:", err);
+      setError("An error occurred while uploading files. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
   };
 

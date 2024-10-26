@@ -15,7 +15,7 @@ export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
     e.preventDefault();
     if (name.trim()) {
       try {
-        await addPatient({ name, profileImage: null });
+        await addPatient({ name, lastImageDate: new Date().toISOString(), imageCount: 0 });
         setName('');
         onClose();
       } catch (error) {
