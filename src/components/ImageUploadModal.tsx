@@ -5,10 +5,10 @@ import { usePatients } from '../context/PatientContext';
 import { FileType as FileTypeEnum } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase';
+import { storage, auth } from '../firebase';
 import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -28,12 +28,13 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const { addFile } = useFiles();
   const { updatePatient } = usePatients();
 
   useEffect(() => {
-    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
       if (user) {
         console.log('User is signed in:', user.uid);
       } else {
@@ -89,7 +90,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   }, []);
 
   const handleUpload = async () => {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0 || !currentUser) return;
 
     setIsUploading(true);
     setError(null);
@@ -100,7 +101,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
         const fileId = uuidv4();
         const fileExtension = file.file.name.split('.').pop();
         const fileName = `${fileId}.${fileExtension}`;
-        const storageRef = ref(storage, `images/${auth.currentUser?.uid}/${fileName}`);
+        const storageRef = ref(storage, `images/${currentUser.uid}/${fileName}`);
         
         const snapshot = await uploadBytes(storageRef, file.file);
         const downloadURL = await getDownloadURL(snapshot.ref);
@@ -111,7 +112,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           name: file.file.name,
           type: file.fileType,
           format: file.format,
-          userId: auth.currentUser?.uid,
+          userId: currentUser.uid,
           createdAt: new Date().toISOString()
         };
 
