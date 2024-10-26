@@ -9,6 +9,7 @@ import { storage, db, auth } from '../firebase/config';
 import { collection, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
+import { DentalFile } from '../types';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -106,7 +107,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
         const snapshot = await uploadBytes(storageRef, file.file);
         const downloadURL = await getDownloadURL(snapshot.ref);
         
-        const fileData = {
+        const fileData: DentalFile = {
           id: fileId,
           url: downloadURL,
           name: file.file.name,
@@ -114,11 +115,14 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           format: file.format,
           userId: user.uid,
           patientId,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          group: 'Unsorted',
+          date: new Date().toISOString(),
+          fileType: file.fileType === '2D' ? '2D' : '3D'
         };
 
         await addDoc(collection(db, 'files'), fileData);
-        await addFile(fileData, patientId);
+        await addFile(fileData);
       }
 
       await updatePatient(patientId, {

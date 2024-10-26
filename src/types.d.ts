@@ -19,7 +19,6 @@ export interface ImageCategory {
 export interface ImageGroup {
   id: string;
   name: string;
-  categoryId: string;
 }
 
 export interface DentalFile {
@@ -27,13 +26,13 @@ export interface DentalFile {
   url: string;
   name: string;
   type: ImageCategory;
-  format: string;
+  format: '2D' | 'PLY' | 'STL';
   userId: string;
   patientId: string;
   createdAt: string;
-  fileType: '2D' | '3D';
   group: ImageGroup;
   date: string;
+  fileType: '2D' | '3D';
 }
 
 export interface Patient {

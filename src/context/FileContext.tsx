@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { DentalFile, ImageCategory, ImageGroup } from '../data/mockData';
+import { DentalFile, ImageCategory, ImageGroup } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { db, storage, auth } from '../firebase';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { db, storage, auth } from '../firebase/config';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 interface FileContextType {
   files: DentalFile[];
   getPatientFiles: (patientId: string) => Promise<DentalFile[]>;
   getFile: (fileId: string) => Promise<DentalFile | undefined>;
-  addFile: (file: File, patientId: string) => Promise<DentalFile>;
+  addFile: (file: DentalFile) => Promise<void>;
   updateFileGroup: (fileId: string, group: ImageGroup) => Promise<void>;
   updateFileCategory: (fileId: string, category: ImageCategory) => Promise<void>;
   deleteFile: (fileId: string) => Promise<void>;
@@ -38,33 +38,13 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
 
   const getFile = useCallback(async (fileId: string) => {
     const docRef = doc(db, 'files', fileId);
-    const docSnap = await getDocs(docRef);
+    const docSnap = await getDoc(docRef);
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as DentalFile : undefined;
   }, []);
 
-  const addFile = useCallback(async (file: File, patientId: string) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('User must be authenticated to add files');
-
-    const fileId = uuidv4();
-    const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-
-    const newFile: DentalFile = {
-      id: fileId,
-      patientId,
-      url: downloadURL,
-      type: 'Unsorted',
-      group: 'Unsorted',
-      date: new Date().toISOString(),
-      fileType: file.type.startsWith('image/') ? '2D' : '3D',
-      format: file.type.startsWith('image/') ? '2D' : file.name.toLowerCase().endsWith('.stl') ? 'STL' : 'PLY'
-    };
-
-    await addDoc(collection(db, 'files'), newFile);
-    setFiles(prev => [...prev, newFile]);
-    return newFile;
+  const addFile = useCallback(async (file: DentalFile) => {
+    const docRef = await addDoc(collection(db, 'files'), file);
+    setFiles(prev => [...prev, { ...file, id: docRef.id }]);
   }, []);
 
   const updateFileGroup = useCallback(async (fileId: string, group: ImageGroup) => {
