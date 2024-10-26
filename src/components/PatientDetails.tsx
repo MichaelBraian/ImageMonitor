@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { ImageUploadModal } from './ImageUploadModal';
+import { useParams } from 'react-router-dom';
+import { usePatients } from './usePatients';
 
 interface PatientDetailsProps {
   patientId: string;
@@ -17,6 +20,10 @@ export function PatientDetails({ patientId }: PatientDetailsProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { patientId: patientIdParam } = useParams<{ patientId: string }>();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const { getPatient } = usePatients();
+  const [patient, setPatient] = useState<Patient | null>(null);
 
   useEffect(() => {
     const fetchPatientFiles = async () => {
@@ -35,6 +42,17 @@ export function PatientDetails({ patientId }: PatientDetailsProps) {
 
     fetchPatientFiles();
   }, [patientId]);
+
+  useEffect(() => {
+    const fetchPatient = async () => {
+      if (patientId) {
+        const fetchedPatient = await getPatient(patientId);
+        setPatient(fetchedPatient);
+        console.log('Fetched patient:', fetchedPatient);
+      }
+    };
+    fetchPatient();
+  }, [patientId, getPatient]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -57,6 +75,11 @@ export function PatientDetails({ patientId }: PatientDetailsProps) {
           ))}
         </ul>
       )}
+      <ImageUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        patientId={patientId || ''} // Ensure patientId is always a string
+      />
     </div>
   );
 }

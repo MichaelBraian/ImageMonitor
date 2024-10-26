@@ -44,6 +44,10 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    console.log('ImageUploadModal rendered with patientId:', patientId);
+  }, [patientId]);
+
   const getFileFormat = (file: File): '2D' | 'PLY' | 'STL' => {
     const extension = file.name.split('.').pop()?.toLowerCase();
     switch (extension) {
@@ -89,13 +93,14 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   }, []);
 
   const handleUpload = async () => {
+    console.log('handleUpload called with patientId:', patientId);
     if (!user) {
       setError('User must be authenticated to upload files');
       return;
     }
 
     if (!patientId) {
-      setError('Patient ID is missing');
+      setError('Patient ID is missing. Please try again or contact support.');
       return;
     }
 
