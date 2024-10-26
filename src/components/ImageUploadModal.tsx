@@ -5,9 +5,8 @@ import { usePatients } from '../context/PatientContext';
 import { FileType as FileTypeEnum } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage, auth } from '../firebase';
+import { storage, db } from '../firebase';
 import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
 
