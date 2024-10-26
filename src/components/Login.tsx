@@ -17,15 +17,15 @@ export const Login: React.FC = () => {
       console.log('Attempting to sign in with:', email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('User signed in:', userCredential.user);
-      await fetchPatients();
+      if (typeof fetchPatients === 'function') {
+        await fetchPatients();
+      } else {
+        console.error('fetchPatients is not a function');
+      }
       navigate('/');
     } catch (error: any) {
       console.error('Error signing in:', error);
-      if (error.code === 'auth/network-request-failed') {
-        setError('Network error. Please check your internet connection or ensure the Firebase Emulator is running.');
-      } else {
-        setError('Failed to sign in. Please check your email and password.');
-      }
+      setError(error.message || 'Failed to sign in. Please check your email and password.');
     }
   };
 

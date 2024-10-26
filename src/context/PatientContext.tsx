@@ -11,6 +11,7 @@ interface PatientContextType {
   getPatient: (patientId: string) => Patient | undefined;
   searchPatients: (query: string) => Patient[];
   deletePatient: (patientId: string) => void;
+  fetchPatients: () => void;
 }
 
 const PatientContext = createContext<PatientContextType | undefined>(undefined);
@@ -77,6 +78,7 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
       getPatient,
       searchPatients,
       deletePatient,
+      fetchPatients
     }}>
       {children}
     </PatientContext.Provider>
