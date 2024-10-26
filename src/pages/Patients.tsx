@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, UserCircle2 } from 'lucide-react';
+import { Plus, Search, User } from 'lucide-react';
 import { usePatients } from '../context/PatientContext';
 import { AddPatientModal } from '../components/AddPatientModal';
 
@@ -92,7 +92,7 @@ export function Patients() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <UserCircle2 className="w-6 h-6 text-gray-400" />
+                          <User className="w-6 h-6 text-gray-400" />
                         </div>
                       )}
                     </div>

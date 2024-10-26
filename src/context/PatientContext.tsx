@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Patient } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
+import { addDoc, collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface PatientContextType {
   patients: Patient[];
-  addPatient: (patient: Omit<Patient, 'id' | 'imageCount'>) => Patient;
+  addPatient: (patient: Patient) => Patient;
   updatePatient: (patientId: string, updates: Partial<Patient>) => void;
   getPatient: (patientId: string) => Patient | undefined;
   searchPatients: (query: string) => Patient[];
@@ -16,17 +18,15 @@ const PatientContext = createContext<PatientContextType | undefined>(undefined);
 export function PatientProvider({ children }: { children: React.ReactNode }) {
   const [patients, setPatients] = useState<Patient[]>([]);
 
-  const addPatient = useCallback((patient: Omit<Patient, 'id' | 'imageCount'>) => {
-    const newPatient: Patient = {
-      ...patient,
-      id: uuidv4(),
-      imageCount: 0,
-      lastImageDate: new Date().toISOString(),
-      profileImage: null
-    };
-    setPatients(prev => [...prev, newPatient]);
-    return newPatient;
-  }, []);
+  const addPatient = async (patient: Patient) => {
+    try {
+      const docRef = await addDoc(collection(db, 'patients'), patient);
+      console.log("Document written with ID: ", docRef.id);
+      setPatients(prevPatients => [...prevPatients, { ...patient, id: docRef.id }]);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+  };
 
   const updatePatient = useCallback((patientId: string, updates: Partial<Patient>) => {
     setPatients(prev => prev.map(patient => 
@@ -48,6 +48,25 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
 
   const deletePatient = useCallback((patientId: string) => {
     setPatients(prev => prev.filter(patient => patient.id !== patientId));
+  }, []);
+
+  // Function to fetch patients from Firestore
+  const fetchPatients = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'patients'));
+      const fetchedPatients = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Patient));
+      setPatients(fetchedPatients);
+    } catch (e) {
+      console.error("Error fetching patients: ", e);
+    }
+  };
+
+  // Call fetchPatients when the component mounts
+  useEffect(() => {
+    fetchPatients();
   }, []);
 
   return (

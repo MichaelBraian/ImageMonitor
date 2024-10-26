@@ -9,7 +9,7 @@ import {
   Grid,
   Image as ImageIcon,
   FileType,
-  UserCircle2
+  User
 } from 'lucide-react';
 import { ImageUploadModal } from '../components/ImageUploadModal';
 import { EditPatientModal } from '../components/EditPatientModal';
@@ -23,13 +23,15 @@ export function PatientDetails() {
   const { getPatientFiles } = useFiles();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  
+  const [files, setFiles] = useState<DentalFile[]>([]);
+
   const patient = patientId ? getPatient(patientId) : null;
-  const files = patientId ? getPatientFiles(patientId) : [];
 
   useEffect(() => {
-    console.log("Raw files from getPatientFiles:", files);
-  }, [files]);
+    if (patientId) {
+      getPatientFiles(patientId).then(setFiles);
+    }
+  }, [patientId, getPatientFiles]);
 
   const handleFileClick = (file: DentalFile) => {
     navigate(`/editor/${file.id}`);
@@ -127,7 +129,7 @@ export function PatientDetails() {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <UserCircle2 className="w-10 h-10 text-gray-400" />
+                <User className="w-10 h-10 text-gray-400" />
               </div>
             )}
           </div>

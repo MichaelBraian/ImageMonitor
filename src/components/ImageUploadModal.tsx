@@ -1,9 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { X, Upload, ImageIcon, Loader2, FileType } from 'lucide-react';
 import { useFiles } from '../context/FileContext';
 import { usePatients } from '../context/PatientContext';
 import { FileType as FileTypeEnum } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
+import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -25,6 +30,19 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   const [error, setError] = useState<string | null>(null);
   const { addFile } = useFiles();
   const { updatePatient } = usePatients();
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('User is signed in:', user.uid);
+      } else {
+        console.log('No user is signed in.');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const getFileFormat = (file: File): '2D' | 'PLY' | 'STL' => {
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -75,33 +93,62 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
 
     setIsUploading(true);
     setError(null);
+    const uploadedFiles = [];
+
     try {
-      // Upload each file
       for (const file of selectedFiles) {
-        console.log("Uploading file:", file);
-        const fileUrl = URL.createObjectURL(file.file);
-        addFile({
-          patientId,
-          url: fileUrl,
-          date: new Date().toISOString(),
-          type: 'Unsorted',
-          group: 'Unsorted',
-          fileType: file.fileType,
-          format: file.format
-        });
+        const fileId = uuidv4();
+        const fileExtension = file.file.name.split('.').pop();
+        const fileName = `${fileId}.${fileExtension}`;
+        const storageRef = ref(storage, `images/${fileName}`);
+        
+        const snapshot = await uploadBytes(storageRef, file.file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        const fileData = {
+          id: fileId,
+          url: downloadURL,
+          name: file.file.name,
+          type: file.fileType,
+          format: file.format,
+        };
+
+        uploadedFiles.push(fileData);
+        console.log('File uploaded successfully:', downloadURL);
       }
 
-      // Update patient's image count and last image date
-      updatePatient(patientId, {
-        imageCount: selectedFiles.length,
+      // Create or update patient document in Firestore
+      const patientRef = doc(db, 'patients', patientId);
+      console.log('Updating Firestore document:', patientId);
+      console.log('Data to be written:', JSON.stringify({
+        files: uploadedFiles,
+        imageCount: uploadedFiles.length,
         lastImageDate: new Date().toISOString()
-      });
+      }, null, 2));
 
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        setError("User is not authenticated. Please log in and try again.");
+        return;
+      }
+      console.log('Current user:', auth.currentUser.uid);
+
+      await setDoc(patientRef, {
+        files: arrayUnion(...uploadedFiles),
+        imageCount: uploadedFiles.length,
+        lastImageDate: new Date().toISOString()
+      }, { merge: true });
+
+      console.log('Firestore document updated successfully');
       setSelectedFiles([]);
       onClose();
     } catch (err) {
-      console.error("Error uploading files:", err);
-      setError("Failed to upload files. Please try again.");
+      console.error("Error in handleUpload:", err);
+      if (err instanceof Error) {
+        setError(`Failed to upload files: ${err.message}`);
+      } else {
+        setError("An unknown error occurred while uploading files.");
+      }
     } finally {
       setIsUploading(false);
     }
@@ -109,6 +156,18 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
 
   const removeFile = (id: string) => {
     setSelectedFiles(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      const storageRef = ref(storage, `images/${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('File uploaded successfully:', downloadURL);
+      // Update your state or perform any other actions with the downloadURL
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
   };
 
   if (!isOpen) return null;

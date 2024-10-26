@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { usePatients } from '../context/PatientContext';
 
 interface AddPatientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string) => void;
 }
 
-export function AddPatientModal({ isOpen, onClose, onSubmit }: AddPatientModalProps) {
+export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
   const [name, setName] = useState('');
+  const { addPatient } = usePatients();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onSubmit(name);
-      setName('');
-      onClose();
+      try {
+        await addPatient({ name, profileImage: null });
+        setName('');
+        onClose();
+      } catch (error) {
+        console.error('Error adding patient:', error);
+        // Handle error (e.g., show error message to user)
+      }
     }
   };
 

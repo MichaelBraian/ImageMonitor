@@ -1,16 +1,19 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { DentalFile, ImageCategory, ImageGroup, FileType } from '../data/mockData';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { DentalFile, ImageCategory, ImageGroup } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
+import { db, storage, auth } from '../firebase';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 interface FileContextType {
   files: DentalFile[];
-  getPatientFiles: (patientId: string) => DentalFile[];
-  getFile: (fileId: string) => DentalFile | undefined;
-  addFile: (file: Omit<DentalFile, 'id'>) => DentalFile;
-  updateFileGroup: (fileId: string, group: ImageGroup) => void;
-  updateFileCategory: (fileId: string, category: ImageCategory) => void;
-  deleteFile: (fileId: string) => void;
-  updateFile: (fileId: string, updates: Partial<DentalFile>) => void;
+  getPatientFiles: (patientId: string) => Promise<DentalFile[]>;
+  getFile: (fileId: string) => Promise<DentalFile | undefined>;
+  addFile: (file: File, patientId: string) => Promise<DentalFile>;
+  updateFileGroup: (fileId: string, group: ImageGroup) => Promise<void>;
+  updateFileCategory: (fileId: string, category: ImageCategory) => Promise<void>;
+  deleteFile: (fileId: string) => Promise<void>;
+  updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -18,45 +21,78 @@ const FileContext = createContext<FileContextType | undefined>(undefined);
 export function FileProvider({ children }: { children: React.ReactNode }) {
   const [files, setFiles] = useState<DentalFile[]>([]);
 
-  const getPatientFiles = useCallback((patientId: string) => {
-    return files.filter(file => file.patientId === patientId);
-  }, [files]);
+  useEffect(() => {
+    const fetchFiles = async () => {
+      const querySnapshot = await getDocs(collection(db, 'files'));
+      const fetchedFiles = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
+      setFiles(fetchedFiles);
+    };
+    fetchFiles();
+  }, []);
 
-  const getFile = useCallback((fileId: string) => {
-    return files.find(file => file.id === fileId);
-  }, [files]);
+  const getPatientFiles = useCallback(async (patientId: string) => {
+    const q = query(collection(db, 'files'), where('patientId', '==', patientId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
+  }, []);
 
-  const addFile = useCallback((file: Omit<DentalFile, 'id'>) => {
-    console.log("Adding file to context:", file);
-    const newFile = { ...file, id: uuidv4() };
-    setFiles(prev => {
-      console.log("Previous files:", prev);
-      console.log("New files state:", [...prev, newFile]);
-      return [...prev, newFile];
-    });
+  const getFile = useCallback(async (fileId: string) => {
+    const docRef = doc(db, 'files', fileId);
+    const docSnap = await getDocs(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as DentalFile : undefined;
+  }, []);
+
+  const addFile = useCallback(async (file: File, patientId: string) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated to add files');
+
+    const fileId = uuidv4();
+    const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+
+    const newFile: DentalFile = {
+      id: fileId,
+      patientId,
+      url: downloadURL,
+      type: 'Unsorted',
+      group: 'Unsorted',
+      date: new Date().toISOString(),
+      fileType: file.type.startsWith('image/') ? '2D' : '3D',
+      format: file.type.startsWith('image/') ? '2D' : file.name.toLowerCase().endsWith('.stl') ? 'STL' : 'PLY'
+    };
+
+    await addDoc(collection(db, 'files'), newFile);
+    setFiles(prev => [...prev, newFile]);
     return newFile;
   }, []);
 
-  const updateFileGroup = useCallback((fileId: string, group: ImageGroup) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId ? { ...file, group } : file
-    ));
+  const updateFileGroup = useCallback(async (fileId: string, group: ImageGroup) => {
+    const docRef = doc(db, 'files', fileId);
+    await updateDoc(docRef, { group });
+    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, group } : f));
   }, []);
 
-  const updateFileCategory = useCallback((fileId: string, category: ImageCategory) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId ? { ...file, type: category } : file
-    ));
+  const updateFileCategory = useCallback(async (fileId: string, category: ImageCategory) => {
+    const docRef = doc(db, 'files', fileId);
+    await updateDoc(docRef, { type: category });
+    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, type: category } : f));
   }, []);
 
-  const deleteFile = useCallback((fileId: string) => {
-    setFiles(prev => prev.filter(file => file.id !== fileId));
+  const deleteFile = useCallback(async (fileId: string) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated to delete files');
+
+    await deleteDoc(doc(db, 'files', fileId));
+    const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
+    await deleteObject(storageRef);
+    setFiles(prev => prev.filter(f => f.id !== fileId));
   }, []);
 
-  const updateFile = useCallback((fileId: string, updates: Partial<DentalFile>) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId ? { ...file, ...updates } : file
-    ));
+  const updateFile = useCallback(async (fileId: string, updates: Partial<DentalFile>) => {
+    const docRef = doc(db, 'files', fileId);
+    await updateDoc(docRef, updates);
+    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, ...updates } : f));
   }, []);
 
   return (

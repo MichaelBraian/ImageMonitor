@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useFiles } from '../context/FileContext';
 import { ThreeDViewer } from '../components/ThreeDViewer';
 import Cropper from 'react-easy-crop';
-import { Area } from 'react-easy-crop';
+import { Area } from 'react-easy-crop/types';
 import { Button } from '../components/ui/Button';
 import { Slider } from '../components/ui/Slider';
-import { RefreshCw, Save, RotateCcw, RotateCw } from 'lucide-react';
+import { RefreshCw, Save, RotateCcw, RotateCw, LayoutTemplate } from 'lucide-react';
 import debounce from 'lodash/debounce';
 
 export function ImageEditor() {
@@ -22,8 +22,6 @@ export function ImageEditor() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   const [quality, setQuality] = useState(92);
-  const [maxWidth, setMaxWidth] = useState(1920);
-  const [maxHeight, setMaxHeight] = useState(1080);
   const [format, setFormat] = useState<'jpeg' | 'png' | 'webp'>('jpeg');
   const [contrast, setContrast] = useState(1);
   const [brightness, setBrightness] = useState(1);
@@ -33,29 +31,33 @@ export function ImageEditor() {
   const [blur, setBlur] = useState(0);
 
   const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<number>(16 / 9);
 
   const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
-  const applyFilters = useMemo(() => debounce((imageUrl: string, filters: any) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.filter = `contrast(${filters.contrast}) brightness(${filters.brightness}) grayscale(${filters.grayscale}) saturate(${filters.saturate}) sepia(${filters.sepia}) blur(${filters.blur}px)`;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
-        const dataUrl = canvas.toDataURL('image/jpeg');
-        if (file && imageId) {
+  const applyFilters = useCallback(
+    debounce((filters: any) => {
+      if (!originalImage || !file || !imageId) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.filter = `contrast(${filters.contrast}) brightness(${filters.brightness}) grayscale(${filters.grayscale}) saturate(${filters.saturate}) sepia(${filters.sepia}) blur(${filters.blur}px)`;
+          ctx.drawImage(img, 0, 0, img.width, img.height);
+          const dataUrl = canvas.toDataURL(`image/${format}`, quality / 100);
           updateFile(imageId, { ...file, url: dataUrl });
         }
-      }
-    };
-    img.src = imageUrl;
-  }, 100), [file, imageId, updateFile]);
+      };
+      img.src = originalImage;
+    }, 100),
+    [originalImage, file, imageId, updateFile, format, quality]
+  );
 
   useEffect(() => {
     if (file && !originalImage) {
@@ -64,29 +66,30 @@ export function ImageEditor() {
   }, [file, originalImage]);
 
   useEffect(() => {
-    if (originalImage) {
-      applyFilters(originalImage, { contrast, brightness, grayscale, saturate, sepia, blur });
-    }
-  }, [originalImage, contrast, brightness, grayscale, saturate, sepia, blur, applyFilters]);
+    applyFilters({ contrast, brightness, grayscale, saturate, sepia, blur });
+  }, [contrast, brightness, grayscale, saturate, sepia, blur, applyFilters]);
 
   const handleSave = useCallback(async () => {
-    if (!file || !croppedAreaPixels) return;
+    if (!file || !croppedAreaPixels || !imageId) return;
 
     try {
       const croppedImage = await getCroppedImg(
         file.url,
         croppedAreaPixels,
         rotation,
-        { contrast, brightness, grayscale, saturate, sepia, blur }
+        { contrast, brightness, grayscale, saturate, sepia, blur },
+        aspectRatio,
+        format,
+        quality
       );
-      if (croppedImage && imageId) {
-        updateFile(imageId, { ...file, url: croppedImage });
+      if (croppedImage) {
+        await updateFile(imageId, { ...file, url: croppedImage });
         navigate(`/patients/${file.patientId}`);
       }
     } catch (e) {
       console.error(e);
     }
-  }, [file, croppedAreaPixels, rotation, contrast, brightness, grayscale, saturate, sepia, blur, imageId, updateFile, navigate]);
+  }, [file, croppedAreaPixels, rotation, contrast, brightness, grayscale, saturate, sepia, blur, aspectRatio, format, quality, imageId, updateFile, navigate]);
 
   const handleRotate = (direction: 'left' | 'right') => {
     setRotation(prev => {
@@ -105,16 +108,21 @@ export function ImageEditor() {
     setRotation(0);
     setZoom(1);
     setCrop({ x: 0, y: 0 });
+    setAspectRatio(16 / 9);
     if (originalImage && file && imageId) {
       updateFile(imageId, { ...file, url: originalImage });
     }
+  };
+
+  const toggleAspectRatio = () => {
+    setAspectRatio(prev => prev === 16 / 9 ? 1 : 16 / 9);
   };
 
   if (!file) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">File not found</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">File not found or failed to load</p>
           <Button onClick={() => navigate('/patients')}>
             Return to Patients
           </Button>
@@ -145,7 +153,7 @@ export function ImageEditor() {
           image={file?.url}
           crop={crop}
           zoom={zoom}
-          aspect={4 / 3}
+          aspect={aspectRatio}
           onCropChange={setCrop}
           onCropComplete={onCropComplete}
           onZoomChange={setZoom}
@@ -202,23 +210,14 @@ export function ImageEditor() {
               <span className="text-sm">{quality}%</span>
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Max dimensions</label>
-              <div className="flex space-x-2">
-                <input
-                  type="number"
-                  value={maxWidth}
-                  onChange={(e) => setMaxWidth(Number(e.target.value))}
-                  className="w-1/2 bg-gray-700 p-2 rounded"
-                  placeholder="Width"
-                />
-                <input
-                  type="number"
-                  value={maxHeight}
-                  onChange={(e) => setMaxHeight(Number(e.target.value))}
-                  className="w-1/2 bg-gray-700 p-2 rounded"
-                  placeholder="Height"
-                />
-              </div>
+              <label className="block text-sm font-medium mb-1">Aspect Ratio</label>
+              <button
+                onClick={toggleAspectRatio}
+                className="flex items-center justify-center w-full p-2 bg-gray-700 rounded hover:bg-gray-600"
+              >
+                <LayoutTemplate className="w-4 h-4 mr-2" />
+                {aspectRatio === 16 / 9 ? '16:9' : '1:1'}
+              </button>
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">Format</label>
@@ -287,7 +286,10 @@ async function getCroppedImg(
     saturate: number;
     sepia: number;
     blur: number;
-  }
+  },
+  aspectRatio: number,
+  format: string,
+  quality: number
 ): Promise<string | null> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
@@ -297,6 +299,7 @@ async function getCroppedImg(
     return null;
   }
 
+  // Set canvas size to match the aspect ratio
   const maxSize = Math.max(image.width, image.height);
   const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
 
@@ -315,8 +318,12 @@ async function getCroppedImg(
 
   const data = ctx.getImageData(0, 0, safeArea, safeArea);
 
+  // Set canvas size to the desired aspect ratio
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
+
+  // Apply filters
+  ctx.filter = `contrast(${filters.contrast}) brightness(${filters.brightness}) grayscale(${filters.grayscale}) saturate(${filters.saturate}) sepia(${filters.sepia}) blur(${filters.blur}px)`;
 
   ctx.putImageData(
     data,
@@ -324,28 +331,19 @@ async function getCroppedImg(
     0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y
   );
 
-  // Apply filters
-  const tempCanvas = document.createElement('canvas');
-  const tempCtx = tempCanvas.getContext('2d');
-  if (!tempCtx) {
-    return null;
-  }
-  tempCanvas.width = canvas.width;
-  tempCanvas.height = canvas.height;
-  tempCtx.filter = `contrast(${filters.contrast}) brightness(${filters.brightness}) grayscale(${filters.grayscale}) saturate(${filters.saturate}) sepia(${filters.sepia}) blur(${filters.blur}px)`;
-  tempCtx.drawImage(canvas, 0, 0);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(tempCanvas, 0, 0);
-
   return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        console.error('Canvas is empty');
-        resolve(null);
-        return;
-      }
-      resolve(URL.createObjectURL(blob));
-    }, 'image/jpeg');
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          console.error('Canvas is empty');
+          resolve(null);
+          return;
+        }
+        resolve(URL.createObjectURL(blob));
+      },
+      `image/${format}`,
+      quality / 100
+    );
   });
 }
 
