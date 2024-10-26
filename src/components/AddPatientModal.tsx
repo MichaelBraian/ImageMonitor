@@ -20,7 +20,10 @@ export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
         onClose();
       } catch (error) {
         console.error('Error adding patient:', error);
-        // Handle error (e.g., show error message to user)
+        if (error instanceof Error) {
+          // Display error message to user
+          alert(`Failed to add patient: ${error.message}`);
+        }
       }
     }
   };

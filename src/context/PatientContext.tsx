@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { addDoc, collection, getDocs, updateDoc, doc, getDoc, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from './AuthContext';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export interface Patient {
   id: string;
@@ -25,18 +26,30 @@ const PatientContext = createContext<PatientContextType | undefined>(undefined);
 
 export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const { user } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
 
-  const fetchPatients = async () => {
-    if (!user) return;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const fetchPatients = useCallback(async () => {
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
     const q = query(collection(db, 'patients'), where('userId', '==', user.uid));
     const querySnapshot = await getDocs(q);
     const fetchedPatients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
     setPatients(fetchedPatients);
-  };
+  }, [user]);
 
-  const addPatient = async (patient: Omit<Patient, 'id' | 'userId' | 'createdAt'>): Promise<Patient> => {
-    if (!user) throw new Error('User must be authenticated to add a patient');
+  const addPatient = useCallback(async (patient: Omit<Patient, 'id' | 'userId' | 'createdAt'>): Promise<Patient> => {
+    if (!user) {
+      throw new Error('User must be authenticated to add a patient');
+    }
     const newPatient = {
       ...patient,
       userId: user.uid,
@@ -48,7 +61,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const addedPatient = { id: docRef.id, ...newPatient };
     setPatients(prev => [...prev, addedPatient]);
     return addedPatient;
-  };
+  }, [user]);
 
   const updatePatient = async (id: string, patientUpdate: Partial<Patient>): Promise<void> => {
     await updateDoc(doc(db, 'patients', id), patientUpdate);
