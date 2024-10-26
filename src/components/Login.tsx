@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
-import { signInWithEmailAndPassword, FirebaseError } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
 
@@ -24,8 +24,8 @@ export const Login: React.FC = () => {
       navigate('/');
     } catch (error: unknown) {
       console.error('Error signing in:', error);
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
+      if (error instanceof Error) {
+        switch ((error as { code?: string }).code) {
           case 'auth/user-not-found':
             setError('No user found with this email address.');
             break;
@@ -46,7 +46,7 @@ export const Login: React.FC = () => {
       <div className="p-6 max-w-sm w-full bg-white shadow-md rounded-md">
         <h1 className="text-2xl font-bold text-center text-gray-700 mb-4">Login</h1>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        <form onSubmit={(e) => handleLogin(e)}>
+        <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
             <input
