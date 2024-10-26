@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { usePatients } from '../context/PatientContext';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { useAuth } from '../context/AuthContext';
 
 interface AddPatientModalProps {
   isOpen: boolean;
@@ -10,6 +13,7 @@ interface AddPatientModalProps {
 export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
   const [name, setName] = useState('');
   const { addPatient } = usePatients();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +29,29 @@ export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
           alert(`Failed to add patient: ${error.message}`);
         }
       }
+    }
+  };
+
+  const handleAddPatient = async () => {
+    try {
+      if (!user) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      const patientData = {
+        name,
+        lastImageDate: new Date().toISOString(),
+        imageCount: 0,
+        userId: user.uid,
+      };
+
+      const docRef = await addDoc(collection(db, 'patients'), patientData);
+      console.log('Patient added with ID: ', docRef.id);
+      // ... handle successful addition
+    } catch (error) {
+      console.error('Error adding patient: ', error);
+      // ... handle error (e.g., show error message to user)
     }
   };
 
