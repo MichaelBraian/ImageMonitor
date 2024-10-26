@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { addDoc, collection, getDocs, updateDoc, doc, getDoc, query, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth } from '../firebase/config';
 import { useAuth } from './AuthContext';
 import { onAuthStateChanged } from 'firebase/auth';
+import { User } from 'firebase/auth';
 
 export interface Patient {
   id: string;

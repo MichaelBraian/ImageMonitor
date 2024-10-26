@@ -5,8 +5,8 @@ import { usePatients } from '../context/PatientContext';
 import { FileType as FileTypeEnum } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage, db } from '../firebase';
-import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { storage, db, auth } from '../firebase/config';
+import { collection, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
 
@@ -118,7 +118,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
         };
 
         await addDoc(collection(db, 'files'), fileData);
-        await addFile(fileData);
+        await addFile(fileData, patientId);
       }
 
       await updatePatient(patientId, {
