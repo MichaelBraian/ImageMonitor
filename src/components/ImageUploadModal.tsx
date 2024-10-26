@@ -100,7 +100,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
         const fileId = uuidv4();
         const fileExtension = file.file.name.split('.').pop();
         const fileName = `${fileId}.${fileExtension}`;
-        const storageRef = ref(storage, `images/${fileName}`);
+        const storageRef = ref(storage, `images/${auth.currentUser?.uid}/${fileName}`);
         
         const snapshot = await uploadBytes(storageRef, file.file);
         const downloadURL = await getDownloadURL(snapshot.ref);
@@ -111,44 +111,26 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           name: file.file.name,
           type: file.fileType,
           format: file.format,
+          userId: auth.currentUser?.uid,
+          createdAt: new Date().toISOString()
         };
 
         uploadedFiles.push(fileData);
-        console.log('File uploaded successfully:', downloadURL);
       }
 
-      // Create or update patient document in Firestore
+      // Update Firestore
       const patientRef = doc(db, 'patients', patientId);
-      console.log('Updating Firestore document:', patientId);
-      console.log('Data to be written:', JSON.stringify({
-        files: uploadedFiles,
-        imageCount: uploadedFiles.length,
-        lastImageDate: new Date().toISOString()
-      }, null, 2));
-
-      const auth = getAuth();
-      if (!auth.currentUser) {
-        setError("User is not authenticated. Please log in and try again.");
-        return;
-      }
-      console.log('Current user:', auth.currentUser.uid);
-
-      await setDoc(patientRef, {
+      await updateDoc(patientRef, {
         files: arrayUnion(...uploadedFiles),
         imageCount: uploadedFiles.length,
         lastImageDate: new Date().toISOString()
-      }, { merge: true });
+      });
 
-      console.log('Firestore document updated successfully');
       setSelectedFiles([]);
       onClose();
     } catch (err) {
       console.error("Error in handleUpload:", err);
-      if (err instanceof Error) {
-        setError(`Failed to upload files: ${err.message}`);
-      } else {
-        setError("An unknown error occurred while uploading files.");
-      }
+      setError("An error occurred while uploading files. Please try again.");
     } finally {
       setIsUploading(false);
     }

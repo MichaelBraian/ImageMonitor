@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { Patient } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
-import { addDoc, collection, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { addDoc, collection, getDocs, updateDoc, doc, getDoc, query, where } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 export interface Patient {
   id: string;
   name: string;
   lastImageDate: string;
   imageCount: number;
+  userId: string;
+  createdAt: string;
 }
 
 interface PatientContextType {
@@ -27,7 +28,8 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const fetchPatients = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'patients'));
+      const q = query(collection(db, 'patients'), where('userId', '==', auth.currentUser?.uid));
+      const querySnapshot = await getDocs(q);
       const fetchedPatients = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -40,10 +42,15 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addPatient = async (patient: Omit<Patient, 'id'>): Promise<Patient> => {
     try {
-      const docRef = await addDoc(collection(db, 'patients'), patient);
-      const newPatient = { id: docRef.id, ...patient };
-      setPatients(prev => [...prev, newPatient]);
-      return newPatient;
+      const newPatient = {
+        ...patient,
+        userId: auth.currentUser?.uid,
+        createdAt: new Date().toISOString()
+      };
+      const docRef = await addDoc(collection(db, 'patients'), newPatient);
+      const addedPatient = { id: docRef.id, ...newPatient };
+      setPatients(prev => [...prev, addedPatient]);
+      return addedPatient;
     } catch (e) {
       console.error("Error adding patient: ", e);
       throw e;

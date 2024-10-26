@@ -6,10 +6,17 @@ interface PatientDetailsProps {
   patientId: string;
 }
 
+interface File {
+  id: string;
+  name: string;
+  url: string;
+  type: '2D' | '3D';
+}
+
 export function PatientDetails({ patientId }: PatientDetailsProps) {
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPatientFiles = async () => {

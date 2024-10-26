@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
 
@@ -22,9 +22,22 @@ export const Login: React.FC = () => {
         console.error('fetchPatients is not a function');
       }
       navigate('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error signing in:', error);
-      setError(error.message || 'Failed to sign in. Please check your email and password.');
+      if (error instanceof AuthError) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+            setError('No user found with this email address.');
+            break;
+          case 'auth/wrong-password':
+            setError('Incorrect password. Please try again.');
+            break;
+          default:
+            setError('Failed to sign in. Please check your email and password.');
+        }
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     }
   };
 

@@ -35,11 +35,11 @@ const uploadFile = async (file: File) => {
   }
 };
 
-const handleSaveData = async (data) => {
+const handleSaveData = async (data: any) => {
   try {
     await setDoc(doc(db, 'collection', 'documentId'), data);
     console.log('Document successfully written!');
   } catch (error) {
-    console.error('Error writing document:', error);
+    console.error('Error writing document: ', error);
   }
 };
