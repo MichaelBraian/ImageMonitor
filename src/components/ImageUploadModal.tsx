@@ -2,14 +2,14 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { X, Upload, ImageIcon, Loader2, FileType } from 'lucide-react';
 import { useFiles } from '../context/FileContext';
 import { usePatients } from '../context/PatientContext';
-import { FileType as FileTypeEnum } from '../data/mockData';
+import { FileType } from '../types'; // Change this line
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, db, auth } from '../firebase/config';
-import { collection, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
-import { DentalFile } from '../types';
+import { DentalFile, ImageCategory, ImageGroup } from '../types';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -35,7 +35,6 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      // Instead of setCurrentUser, we're using the user from useAuth
       if (currentUser) {
         console.log('User is signed in:', currentUser.uid);
       } else {
@@ -96,6 +95,11 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
       return;
     }
 
+    if (!patientId) {
+      setError('Patient ID is missing');
+      return;
+    }
+
     setIsUploading(true);
     setError(null);
 
@@ -111,14 +115,14 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           id: fileId,
           url: downloadURL,
           name: file.file.name,
-          type: file.fileType,
+          type: { id: 'unsorted', name: 'Unsorted' } as ImageCategory,
           format: file.format,
           userId: user.uid,
           patientId,
           createdAt: new Date().toISOString(),
-          group: 'Unsorted',
+          group: { id: 'unsorted', name: 'Unsorted' } as ImageGroup,
           date: new Date().toISOString(),
-          fileType: file.fileType === '2D' ? '2D' : '3D'
+          fileType: file.fileType
         };
 
         await addDoc(collection(db, 'files'), fileData);
