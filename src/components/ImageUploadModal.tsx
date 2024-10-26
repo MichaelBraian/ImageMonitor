@@ -1,15 +1,14 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { X, Upload, ImageIcon, Loader2, FileType } from 'lucide-react';
+import { X, Upload, ImageIcon, Loader2, FileType as FileTypeIcon } from 'lucide-react';
 import { useFiles } from '../context/FileContext';
 import { usePatients } from '../context/PatientContext';
-import { FileType } from '../types'; // Change this line
+import { FileType, DentalFile, ImageCategory, ImageGroup } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, db, auth } from '../firebase/config';
 import { collection, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
-import { DentalFile, ImageCategory, ImageGroup } from '../types';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -218,7 +217,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                        <FileType className="w-8 h-8 text-gray-400 mb-2" />
+                        <FileTypeIcon className="w-8 h-8 text-gray-400 mb-2" />
                         <span className="text-xs text-gray-500 dark:text-gray-400 text-center">
                           {file.file.name}
                         </span>

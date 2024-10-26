@@ -32,7 +32,7 @@ export interface DentalFile {
   createdAt: string;
   group: ImageGroup;
   date: string;
-  fileType: '2D' | '3D';
+  fileType: FileType;
 }
 
 export interface Patient {
