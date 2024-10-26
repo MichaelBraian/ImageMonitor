@@ -40,12 +40,17 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  const addPatient = async (patient: Omit<Patient, 'id'>): Promise<Patient> => {
+  const addPatient = async (patient: Omit<Patient, 'id' | 'userId' | 'createdAt'>): Promise<Patient> => {
     try {
+      if (!auth.currentUser) {
+        throw new Error('User must be authenticated to add a patient');
+      }
       const newPatient = {
         ...patient,
-        userId: auth.currentUser?.uid,
-        createdAt: new Date().toISOString()
+        userId: auth.currentUser.uid,
+        createdAt: new Date().toISOString(),
+        imageCount: 0, // Initialize with 0 images
+        lastImageDate: new Date().toISOString() // Set to current date
       };
       const docRef = await addDoc(collection(db, 'patients'), newPatient);
       const addedPatient = { id: docRef.id, ...newPatient };
