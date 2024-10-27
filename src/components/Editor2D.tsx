@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Save, X, RotateCw, FlipHorizontal, FlipVertical, Crop } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Save, X, FlipHorizontal, FlipVertical } from 'lucide-react';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 interface Editor2DProps {
@@ -18,7 +18,6 @@ interface FilterSettings {
 }
 
 export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rotation, setRotation] = useState(0);
   const [flipH, setFlipH] = useState(false);
@@ -31,162 +30,44 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     sepia: 0,
     blur: 0
   });
-  const [isCropping, setIsCropping] = useState(false);
-  const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
 
-  // Add a ref initialized state
-  const [isCanvasReady, setIsCanvasReady] = useState(false);
+  const [displayUrl, setDisplayUrl] = useState<string>('');
 
-  // Add useEffect to check when canvas is ready
   useEffect(() => {
-    if (canvasRef.current) {
-      setIsCanvasReady(true);
-    }
-  }, []);
-
-  // Separate image loading logic
-  const loadImage = async (url: string) => {
-    try {
-      const storage = getStorage();
-      const imageRef = ref(storage, url);
-      const freshUrl = await getDownloadURL(imageRef);
-      
-      console.log('Got fresh download URL:', freshUrl);
-      
-      const image = new Image();
-      image.crossOrigin = "anonymous";
-      
-      return new Promise<HTMLImageElement>((resolve, reject) => {
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = freshUrl;
-      });
-    } catch (error) {
-      console.error('Error loading image:', error);
-      throw error;
-    }
-  };
-
-  // Main effect for handling image loading and canvas setup
-  useEffect(() => {
-    const initializeEditor = async () => {
-      if (!isCanvasReady) {
-        console.log('Waiting for canvas to be ready...');
-        return;
-      }
-
-      console.log('Canvas is ready, starting initialization...');
-      setIsLoading(true);
-
+    const loadImage = async () => {
       try {
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        
-        if (!canvas || !ctx) {
-          throw new Error('Canvas context not available');
-        }
-
-        const image = await loadImage(imageUrl);
-        console.log('Image loaded with dimensions:', {
-          width: image.width,
-          height: image.height,
-          naturalWidth: image.naturalWidth,
-          naturalHeight: image.naturalHeight
-        });
-
-        // Set canvas dimensions
-        canvas.width = image.naturalWidth || image.width;
-        canvas.height = image.naturalHeight || image.height;
-
-        // Draw initial image
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(image, 0, 0);
-        
-        setOriginalImage(image);
+        setIsLoading(true);
+        const storage = getStorage();
+        const imageRef = ref(storage, imageUrl);
+        const url = await getDownloadURL(imageRef);
+        console.log('Got image URL:', url);
+        setDisplayUrl(url);
         setIsLoading(false);
-        
-        console.log('Editor initialized successfully');
       } catch (error) {
-        console.error('Error initializing editor:', error);
+        console.error('Error loading image:', error);
         setIsLoading(false);
-        setOriginalImage(null);
       }
     };
 
-    initializeEditor();
-  }, [imageUrl, isCanvasReady]);
+    loadImage();
+  }, [imageUrl]);
 
-  // Add effect to reapply transformations when any transform state changes
-  useEffect(() => {
-    if (originalImage) {
-      applyTransformations(originalImage);
-    }
-  }, [rotation, flipH, flipV, filters]);
-
-  const applyTransformations = (image: HTMLImageElement) => {
-    if (!canvasRef.current) {
-      console.error('Canvas ref is null');
-      return;
-    }
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('Could not get canvas context');
-      return;
-    }
-
-    // Store original dimensions
-    const originalWidth = canvas.width;
-    const originalHeight = canvas.height;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Set up filters
-    ctx.filter = `
-      contrast(${filters.contrast}%)
-      brightness(${filters.brightness}%)
-      grayscale(${filters.grayscale}%)
-      saturate(${filters.saturate}%)
-      sepia(${filters.sepia}%)
-      blur(${filters.blur}px)
-    `;
-
-    // Save context state
-    ctx.save();
-
-    // Move to center
-    ctx.translate(originalWidth / 2, originalHeight / 2);
-
-    // Apply rotation
-    ctx.rotate((rotation * Math.PI) / 180);
-
-    // Apply flips
-    ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-
-    // Draw image centered
-    try {
-      ctx.drawImage(
-        image,
-        -originalWidth / 2,
-        -originalHeight / 2,
-        originalWidth,
-        originalHeight
-      );
-    } catch (error) {
-      console.error('Error drawing image:', error);
-    }
-
-    // Restore context
-    ctx.restore();
-  };
-
-  const handleSave = () => {
-    if (canvasRef.current) {
-      const dataUrl = canvasRef.current.toDataURL('image/jpeg');
-      onSave(dataUrl);
-    }
+  const getTransformStyle = () => {
+    return {
+      transform: `
+        rotate(${rotation}deg)
+        scaleX(${flipH ? -1 : 1})
+        scaleY(${flipV ? -1 : 1})
+      `,
+      filter: `
+        contrast(${filters.contrast}%)
+        brightness(${filters.brightness}%)
+        grayscale(${filters.grayscale}%)
+        saturate(${filters.saturate}%)
+        sepia(${filters.sepia}%)
+        blur(${filters.blur}px)
+      `
+    };
   };
 
   return (
@@ -203,7 +84,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
           <h1 className="text-xl font-semibold">Image Editor</h1>
         </div>
         <button
-          onClick={handleSave}
+          onClick={() => onSave(displayUrl)}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Save className="w-5 h-5 mr-2" />
@@ -213,41 +94,24 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
 
       {/* Editor Container */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Main Canvas Area */}
+        {/* Main Image Area */}
         <div className="flex-1 p-4 flex items-center justify-center bg-gray-200 dark:bg-gray-800">
-          {!isCanvasReady ? (
-            <div className="flex flex-col items-center">
-              <Loader2 className="w-8 h-8 animate-spin" />
-              <p className="mt-2">Initializing editor...</p>
-            </div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="flex flex-col items-center">
               <Loader2 className="w-8 h-8 animate-spin" />
               <p className="mt-2">Loading image...</p>
             </div>
-          ) : !originalImage ? (
-            <div className="text-red-500 flex flex-col items-center">
-              <p>Failed to load image. Please try again.</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Reload
-              </button>
-            </div>
-          ) : (
+          ) : displayUrl ? (
             <div className="relative max-w-full max-h-full overflow-auto">
-              <canvas 
-                ref={canvasRef} 
-                className="shadow-lg"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  width: 'auto',
-                  height: 'auto'
-                }}
+              <img
+                src={displayUrl}
+                alt="Editing"
+                className="max-w-full max-h-full"
+                style={getTransformStyle()}
               />
             </div>
+          ) : (
+            <div className="text-red-500">Failed to load image</div>
           )}
         </div>
 
