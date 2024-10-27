@@ -20,10 +20,10 @@ export function PatientDetails() {
         setIsLoading(true);
         if (patientId) {
           const fetchedPatient = await getPatient(patientId);
-          console.log('Fetched patient:', fetchedPatient);
+          console.log('Fetched patient:', JSON.stringify(fetchedPatient, null, 2));
           setPatient(fetchedPatient);
           const fetchedFiles = await getPatientFiles();
-          console.log('Fetched files:', fetchedFiles);
+          console.log('Fetched files:', JSON.stringify(fetchedFiles, null, 2));
           setFiles(fetchedFiles);
         }
       } catch (err) {
@@ -38,7 +38,7 @@ export function PatientDetails() {
   }, [patientId, getPatient, getPatientFiles]);
 
   const filesByGroup = useMemo(() => {
-    console.log('Creating filesByGroup. Files:', files);
+    console.log('Creating filesByGroup. Files:', JSON.stringify(files, null, 2));
     return files.reduce<Record<string, DentalFile[]>>((acc, file) => {
       const groupId = file.group;
       if (!acc[groupId]) {
@@ -49,11 +49,11 @@ export function PatientDetails() {
     }, {});
   }, [files]);
 
-  console.log('Rendering PatientDetails. Patient:', patient);
-  console.log('FilesByGroup:', filesByGroup);
+  console.log('Rendering PatientDetails. Patient:', JSON.stringify(patient, null, 2));
+  console.log('FilesByGroup:', JSON.stringify(filesByGroup, null, 2));
 
   const renderFile = (file: DentalFile) => {
-    console.log('Rendering file:', file);
+    console.log('Rendering file:', JSON.stringify(file, null, 2));
     if (file.fileType === '3D') {
       return (
         <div className="w-full h-40 flex items-center justify-center">

@@ -70,13 +70,14 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
+      console.log('Raw patient data:', JSON.stringify(data, null, 2));
       return {
         id: docSnap.id,
-        name: data.name,
-        lastImageDate: data.lastImageDate,
-        imageCount: data.imageCount,
-        userId: data.userId,
-        createdAt: data.createdAt
+        name: data.name || '',
+        lastImageDate: data.lastImageDate || '',
+        imageCount: data.imageCount || 0,
+        userId: data.userId || '',
+        createdAt: data.createdAt || ''
       };
     }
     return null;
