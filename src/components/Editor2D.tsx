@@ -15,10 +15,10 @@ function Editor2D({ file }: Editor2DProps) {
     height: '100%',
     objectFit: 'contain',
     compressInitial: null,
-    hideDeleteBtn: false,
-    hideDownloadBtn: false,
-    hideEditBtn: false,
-    hideAddBtn: true,
+    hideDeleteBtn: true,      // Hide delete button
+    hideDownloadBtn: false,   // Keep download button
+    hideEditBtn: false,       // Keep edit button
+    hideAddBtn: true,         // Hide add/upload button
     hideZoomBtn: false,
     hideRotateBtn: false,
     hideFlipBtn: false,
