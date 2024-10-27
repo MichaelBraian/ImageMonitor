@@ -51,9 +51,6 @@ export function PatientDetails() {
     return grouped;
   }, [files]);
 
-  console.log('Rendering PatientDetails. Patient:', JSON.stringify(patient, null, 2));
-  console.log('FilesByGroup:', JSON.stringify(filesByGroup, null, 2));
-
   const renderFile = (file: DentalFile) => {
     console.log('Rendering file:', JSON.stringify(file, null, 2));
     if (file.fileType === '3D') {
@@ -80,7 +77,7 @@ export function PatientDetails() {
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">{patient.name}'s Files</h2>
-      {Object.entries(filesByGroup).length === 0 ? (
+      {Object.keys(filesByGroup).length === 0 ? (
         <p>No files uploaded yet.</p>
       ) : (
         Object.entries(filesByGroup).map(([groupId, groupFiles]) => (

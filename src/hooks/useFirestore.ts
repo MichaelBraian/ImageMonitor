@@ -57,12 +57,17 @@ export const useFirestore = () => {
 
 export const usePatientFiles = (patientId: string) => {
   const getPatientFiles = async () => {
-    const filesRef = collection(db, 'files').withConverter(dentalFileConverter);
-    const filesQuery = query(filesRef, where('patientId', '==', patientId));
-    const querySnapshot = await getDocs(filesQuery);
-    const files = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-    console.log('Fetched patient files:', files);
-    return files;
+    try {
+      const filesRef = collection(db, 'files').withConverter(dentalFileConverter);
+      const filesQuery = query(filesRef, where('patientId', '==', patientId));
+      const querySnapshot = await getDocs(filesQuery);
+      const files = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      console.log('Fetched patient files:', JSON.stringify(files, null, 2));
+      return files;
+    } catch (error) {
+      console.error('Error fetching patient files:', error);
+      throw error;
+    }
   };
 
   return { getPatientFiles };
