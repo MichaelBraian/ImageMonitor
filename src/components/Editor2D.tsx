@@ -105,12 +105,15 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const handleCropStart = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isCropping || !imageRef.current) return;
 
-    const rect = imageRef.current.getBoundingClientRect();
+    // Get the container's bounds
+    const container = imageRef.current.parentElement;
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    
+    // Calculate position relative to container, ignoring rotation
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
-    // Ensure we're clicking inside the image
-    if (x < 0 || x > rect.width || y < 0 || y > rect.height) return;
 
     setCropStart({ x, y });
     setCropArea({ x, y, width: 0, height: 0 });
@@ -119,7 +122,13 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const handleCropMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isCropping || !cropStart || !imageRef.current) return;
 
-    const rect = imageRef.current.getBoundingClientRect();
+    // Get the container's bounds
+    const container = imageRef.current.parentElement;
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    
+    // Calculate position relative to container, ignoring rotation
     const currentX = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
     const currentY = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
 
@@ -211,6 +220,59 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     }
   };
 
+  // Modify the save handler to include all transformations
+  const handleSave = () => {
+    if (!imageRef.current) return;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size to match original image
+    canvas.width = imageRef.current.naturalWidth;
+    canvas.height = imageRef.current.naturalHeight;
+
+    // Apply transformations in the correct order
+    ctx.save();
+    
+    // Move to center for transformations
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    
+    // Apply rotation
+    ctx.rotate((rotation * Math.PI) / 180);
+    
+    // Apply flips
+    ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    
+    // Move back
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+    // Apply filters
+    ctx.filter = `
+      contrast(${filters.contrast}%)
+      brightness(${filters.brightness}%)
+      grayscale(${filters.grayscale}%)
+      saturate(${filters.saturate}%)
+      sepia(${filters.sepia}%)
+      blur(${filters.blur}px)
+    `;
+
+    // Draw the image with all transformations
+    ctx.drawImage(
+      imageRef.current,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    ctx.restore();
+
+    // Convert to base64 and save
+    const finalImage = canvas.toDataURL('image/jpeg', 1.0);
+    onSave(finalImage);
+  };
+
   return (
     <div className="w-full h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
       {/* Header */}
@@ -225,7 +287,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
           <h1 className="text-xl font-semibold">Image Editor</h1>
         </div>
         <button
-          onClick={() => onSave(displayUrl)}
+          onClick={handleSave}  {/* Change this line */}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Save className="w-5 h-5 mr-2" />
