@@ -75,6 +75,27 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     setFiles(prev => prev.map(f => f.id === fileId ? { ...f, ...updates } : f));
   }, []);
 
+  const refreshPatientFiles = async (patientId: string) => {
+    try {
+      const q = query(collection(db, 'files'), where('patientId', '==', patientId));
+      const querySnapshot = await getDocs(q);
+      const fetchedFiles: DentalFile[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedFiles.push({ id: doc.id, ...doc.data() } as DentalFile);
+      });
+      setFiles(fetchedFiles);
+    } catch (error) {
+      console.error('Error refreshing patient files:', error);
+    }
+  };
+
+  const uploadFile = async (file: File, patientId: string, category: string) => {
+    // ... (existing upload logic)
+
+    // After successful upload and document creation
+    await refreshPatientFiles(patientId);
+  };
+
   return (
     <FileContext.Provider value={{
       files,
@@ -85,6 +106,8 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
       updateFileCategory,
       deleteFile,
       updateFile,
+      refreshPatientFiles,
+      uploadFile,
     }}>
       {children}
     </FileContext.Provider>

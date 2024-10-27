@@ -20,7 +20,7 @@ export function PatientDetails() {
   const navigate = useNavigate();
   const { patientId } = useParams();
   const { getPatient, updatePatient, deletePatient } = usePatients();
-  const { getPatientFiles } = useFiles();
+  const { getPatientFiles, refreshPatientFiles } = useFiles();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [files, setFiles] = useState<DentalFile[]>([]);
@@ -30,8 +30,9 @@ export function PatientDetails() {
   useEffect(() => {
     if (patientId) {
       getPatientFiles(patientId).then(setFiles);
+      refreshPatientFiles(patientId);
     }
-  }, [patientId, getPatientFiles]);
+  }, [patientId, getPatientFiles, refreshPatientFiles]);
 
   const handleFileClick = (file: DentalFile) => {
     navigate(`/editor/${file.id}`);
@@ -229,7 +230,8 @@ export function PatientDetails() {
       <ImageUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        patientId={patientId || ''}
+        onUploadComplete={handleFileUpload}
+        patientId={patientId}
       />
 
       <EditPatientModal

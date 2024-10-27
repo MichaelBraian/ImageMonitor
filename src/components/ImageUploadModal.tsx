@@ -14,10 +14,16 @@ import { increment } from 'firebase/firestore';
 interface ImageUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onUploadComplete: () => void;
   patientId: string;
 }
 
-export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModalProps) {
+export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
+  isOpen,
+  onClose,
+  onUploadComplete,
+  patientId
+}) => {
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
