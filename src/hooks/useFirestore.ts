@@ -1,7 +1,5 @@
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, query, where, CollectionReference, Query } from 'firebase/firestore';
-import { useFirestoreQueryData } from '@react-query-firebase/firestore';
-import { QueryDocumentSnapshot, SnapshotOptions, DocumentData } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, CollectionReference, Query, QueryDocumentSnapshot, SnapshotOptions, DocumentData } from 'firebase/firestore';
 import { DentalFile } from '../types';
 
 const dentalFileConverter = {
@@ -58,11 +56,12 @@ export const useFirestore = () => {
 };
 
 export const usePatientFiles = (patientId: string) => {
-  const filesRef = collection(db, 'files').withConverter(dentalFileConverter);
-  const filesQuery = query(filesRef, where('patientId', '==', patientId));
+  const getPatientFiles = async () => {
+    const filesRef = collection(db, 'files').withConverter(dentalFileConverter);
+    const filesQuery = query(filesRef, where('patientId', '==', patientId));
+    const querySnapshot = await getDocs(filesQuery);
+    return querySnapshot.docs.map(doc => doc.data());
+  };
 
-  return useFirestoreQueryData(['files', patientId], filesQuery, {
-    idField: 'id',
-    subscribe: true,
-  });
+  return { getPatientFiles };
 };

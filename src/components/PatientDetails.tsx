@@ -7,12 +7,29 @@ import { DentalFile, ImageGroup } from '../types';
 export function PatientDetails() {
   const { patientId } = useParams<{ patientId: string }>();
   const { getPatient } = usePatients();
-  const { data: files, isLoading, error } = usePatientFiles(patientId || '');
+  const { getPatientFiles } = usePatientFiles(patientId || '');
+  const [files, setFiles] = useState<DentalFile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const fetchedFiles = await getPatientFiles();
+        setFiles(fetchedFiles);
+      } catch (err) {
+        setError('Failed to fetch patient files');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFiles();
+  }, [getPatientFiles]);
+
   const patient = patientId ? getPatient(patientId) : null;
 
   const filesByGroup = useMemo(() => {
-    if (!files) return {};
-
     return files.reduce<Record<string, DentalFile[]>>((acc, file) => {
       const groupId = file.group?.id || 'Unsorted';
       if (!acc[groupId]) {
@@ -24,7 +41,7 @@ export function PatientDetails() {
   }, [files]);
 
   if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (error) return <div>Error: {error}</div>;
   if (!patient) return <div>Patient not found</div>;
 
   return (
