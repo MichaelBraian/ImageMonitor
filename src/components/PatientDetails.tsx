@@ -40,7 +40,7 @@ export function PatientDetails() {
   const filesByGroup = useMemo(() => {
     console.log('Creating filesByGroup. Files:', JSON.stringify(files, null, 2));
     const grouped = files.reduce<Record<string, DentalFile[]>>((acc, file) => {
-      const groupId = file.group || 'Unsorted';
+      const groupId = typeof file.group === 'string' ? file.group : 'Unsorted';
       if (!acc[groupId]) {
         acc[groupId] = [];
       }

@@ -23,7 +23,7 @@ export interface DentalFile {
   userId: string;
   patientId: string;
   createdAt: string;
-  group: ImageGroup;  // Changed from string to ImageGroup
+  group: ImageGroup;
   date: string;
   fileType: '2D' | '3D';
 }
