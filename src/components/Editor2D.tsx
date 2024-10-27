@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactImagePickerEditor, { ReactImagePickerEditorProps } from 'react-image-picker-editor';
+import ReactImagePickerEditor from 'react-image-picker-editor';
 import 'react-image-picker-editor/dist/index.css';
 
 interface Editor2DProps {
@@ -9,12 +9,15 @@ interface Editor2DProps {
 }
 
 export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose }) => {
-  const config: ReactImagePickerEditorProps['config'] = {
+  const config = {
     borderRadius: '8px',
     language: 'en',
     width: '800px',
     height: '400px',
     objectFit: 'contain',
+    compressInitial: null,
+    // Set initial image to force the editor to show the image immediately
+    defaultImage: imageUrl
   };
 
   return (
@@ -26,7 +29,8 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         
         <ReactImagePickerEditor
           config={config}
-          imageSrcProps={imageUrl}
+          // Use defaultImage instead of imageSrcProps
+          defaultImage={imageUrl}
           onSave={onSave}
         />
         
