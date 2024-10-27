@@ -45,6 +45,13 @@ export function PatientDetails() {
     }
   };
 
+  const handleFileUpload = async () => {
+    if (patientId) {
+      const updatedFiles = await getPatientFiles(patientId);
+      setFiles(updatedFiles);
+    }
+  };
+
   if (!patient) {
     return (
       <div className="p-6">
@@ -231,7 +238,7 @@ export function PatientDetails() {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadComplete={handleFileUpload}
-        patientId={patientId}
+        patientId={patientId || ''}
       />
 
       <EditPatientModal
