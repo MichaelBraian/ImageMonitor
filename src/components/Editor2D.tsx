@@ -15,6 +15,7 @@ export function Editor2D({ file }: Editor2DProps) {
   const [zoom, setZoom] = useState(1);
   const [isCropping, setIsCropping] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastTouchDistance = useRef<number>(0);
 
   useEffect(() => {
     const img = new Image();
@@ -28,12 +29,45 @@ export function Editor2D({ file }: Editor2DProps) {
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      // Check if it's a touchpad/trackpad gesture
+      const isTrackpad = Math.abs(e.deltaY) < 50;
+      const delta = isTrackpad ? e.deltaY * -0.01 : e.deltaY > 0 ? -0.1 : 0.1;
       setZoom(prevZoom => Math.max(0.1, Math.min(5, prevZoom + delta)));
     };
 
+    // Handle touchpad pinch gestures
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const distance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        lastTouchDistance.current = distance;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const distance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const delta = (distance - lastTouchDistance.current) * 0.01;
+        lastTouchDistance.current = distance;
+        setZoom(prevZoom => Math.max(0.1, Math.min(5, prevZoom + delta)));
+      }
+    };
+
     container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+    };
   }, []);
 
   if (!image) {
@@ -53,9 +87,34 @@ export function Editor2D({ file }: Editor2DProps) {
   };
 
   const handleCropComplete = (croppedArea: { width: number; height: number; x: number; y: number }) => {
-    // Implement crop completion logic here
-    console.log('Crop completed:', croppedArea);
-    setIsCropping(false);
+    // Create a canvas to draw the cropped image
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !image) return;
+
+    // Set canvas dimensions to the cropped area size
+    canvas.width = croppedArea.width;
+    canvas.height = croppedArea.height;
+
+    // Draw the cropped portion of the image
+    ctx.drawImage(
+      image,
+      croppedArea.x, croppedArea.y,
+      croppedArea.width, croppedArea.height,
+      0, 0,
+      croppedArea.width, croppedArea.height
+    );
+
+    // Convert canvas to data URL
+    const croppedImage = canvas.toDataURL('image/jpeg', 0.95);
+    
+    // Update the image
+    const newImage = new Image();
+    newImage.src = croppedImage;
+    newImage.onload = () => {
+      setImage(newImage);
+      setIsCropping(false);
+    };
   };
 
   const handleCropCancel = () => {
@@ -84,6 +143,7 @@ export function Editor2D({ file }: Editor2DProps) {
             imageRef={{ current: image }} 
             onCropComplete={handleCropComplete} 
             onCancel={handleCropCancel}
+            aspectRatio={undefined}
           />
         )}
       </div>
