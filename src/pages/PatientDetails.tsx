@@ -285,11 +285,16 @@ export function PatientDetails() {
           imageUrl={selectedImage}
           onSave={async (editedImage: string) => {
             try {
-              await updateFileImage(currentFileId, editedImage);
+              // Convert the edited image to a blob
+              const response = await fetch(editedImage);
+              const blob = await response.blob();
+              
+              await updateFileImage(currentFileId, blob);
               await fetchPatientFiles(); // Refresh the files list
               setShowEditor(false);
             } catch (error) {
               console.error('Error saving edited image:', error);
+              alert('Failed to save the edited image. Please try again.');
             }
           }}
           onClose={() => setShowEditor(false)}
