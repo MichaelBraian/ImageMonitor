@@ -5,7 +5,8 @@ import { PatientProvider } from './context/PatientContext';
 import { FileProvider } from './context/FileContext';
 import { Layout } from './components/Layout';
 import { PatientList } from './components/PatientList';
-import { PatientDetails } from './components/PatientDetails';
+import { PatientDetails } from './pages/PatientDetails';
+import { Editor } from './pages/Editor'; // Make sure this import is correct
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
               <Route path="/" element={<Layout />}>
                 <Route path="/patients" element={<PatientList />} />
                 <Route path="/patients/:patientId" element={<PatientDetails />} />
+                <Route path="/editor/:fileId" element={<Editor />} />
                 {/* ... other routes ... */}
               </Route>
             </Routes>
