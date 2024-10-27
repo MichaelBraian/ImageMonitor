@@ -1,5 +1,33 @@
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where, CollectionReference, Query } from 'firebase/firestore';
+import { useFirestoreQueryData } from '@react-query-firebase/firestore';
+import { QueryDocumentSnapshot, SnapshotOptions, DocumentData } from 'firebase/firestore';
+import { DentalFile } from '../types';
+
+const dentalFileConverter = {
+  toFirestore(dentalFile: DentalFile): DocumentData {
+    return { ...dentalFile };
+  },
+  fromFirestore(
+    snapshot: QueryDocumentSnapshot,
+    options: SnapshotOptions
+  ): DentalFile {
+    const data = snapshot.data(options);
+    return {
+      id: snapshot.id,
+      url: data.url,
+      name: data.name,
+      type: data.type,
+      format: data.format,
+      userId: data.userId,
+      patientId: data.patientId,
+      createdAt: data.createdAt,
+      group: data.group,
+      date: data.date,
+      fileType: data.fileType
+    };
+  }
+};
 
 export const useFirestore = () => {
   const addDocument = async (collectionName: string, data: any) => {
@@ -27,4 +55,14 @@ export const useFirestore = () => {
   };
 
   return { addDocument, getDocuments };
+};
+
+export const usePatientFiles = (patientId: string) => {
+  const filesRef = collection(db, 'files').withConverter(dentalFileConverter);
+  const filesQuery = query(filesRef, where('patientId', '==', patientId));
+
+  return useFirestoreQueryData(['files', patientId], filesQuery, {
+    idField: 'id',
+    subscribe: true,
+  });
 };

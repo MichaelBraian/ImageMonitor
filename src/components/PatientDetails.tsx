@@ -1,83 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { ImageUploadModal } from './ImageUploadModal';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
-import { Patient, DentalFile } from '../types'; // Make sure to import these types
+import { usePatientFiles } from '../hooks/useFirestore';
+import { DentalFile, ImageGroup } from '../types';
 
 export function PatientDetails() {
   const { patientId } = useParams<{ patientId: string }>();
-  const [files, setFiles] = useState<DentalFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const { getPatient } = usePatients();
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const { data: files, isLoading, error } = usePatientFiles(patientId || '');
+  const patient = patientId ? getPatient(patientId) : null;
 
-  useEffect(() => {
-    const fetchPatientAndFiles = async () => {
-      if (!patientId) {
-        setError('Patient ID is missing');
-        setLoading(false);
-        return;
+  const filesByGroup = useMemo(() => {
+    if (!files) return {};
+
+    return files.reduce<Record<string, DentalFile[]>>((acc, file) => {
+      const groupId = file.group?.id || 'Unsorted';
+      if (!acc[groupId]) {
+        acc[groupId] = [];
       }
+      acc[groupId].push(file);
+      return acc;
+    }, {});
+  }, [files]);
 
-      try {
-        const fetchedPatient = await getPatient(patientId);
-        if (fetchedPatient) {
-          setPatient(fetchedPatient);
-          console.log('Fetched patient:', fetchedPatient);
-
-          // Fetch files for this patient
-          const filesQuery = query(collection(db, 'files'), where('patientId', '==', patientId));
-          const filesSnapshot = await getDocs(filesQuery);
-          const fetchedFiles = filesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
-          setFiles(fetchedFiles);
-        } else {
-          setError('Patient not found');
-        }
-      } catch (error) {
-        console.error('Error fetching patient data:', error);
-        setError('Failed to fetch patient data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPatientAndFiles();
-  }, [patientId, getPatient]);
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
   if (!patient) return <div>Patient not found</div>;
 
   return (
     <div>
       <h2>{patient.name}'s Files</h2>
-      <button onClick={() => setIsUploadModalOpen(true)}>Upload Files</button>
-      {files.length === 0 ? (
-        <p>No files uploaded yet.</p>
-      ) : (
-        <ul>
-          {files.map((file) => (
-            <li key={file.id}>
-              {file.fileType === '2D' ? (
-                <img src={file.url} alt={file.name} style={{ width: '100px', height: '100px', objectFit: 'cover' }} />
-              ) : (
-                <div>{file.name} (3D file)</div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {isUploadModalOpen && (
-        <ImageUploadModal
-          isOpen={isUploadModalOpen}
-          onClose={() => setIsUploadModalOpen(false)}
-          patientId={patientId}
-        />
-      )}
+      {Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
+        <div key={groupId}>
+          <h3>{groupId}</h3>
+          <ul>
+            {groupFiles.map((file) => (
+              <li key={file.id}>{file.name}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

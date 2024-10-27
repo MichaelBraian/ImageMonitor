@@ -9,6 +9,7 @@ import { storage, db, auth } from '../firebase/config';
 import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
+import { increment } from 'firebase/firestore';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -91,68 +92,59 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   }, []);
 
   const handleUpload = async () => {
+    if (!user) {
+      setError('User must be authenticated to upload files');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
     try {
-      if (!patientId || patientId === '') {
-        throw new Error('Patient ID is required for upload');
-      }
-      
-      console.log('handleUpload called with patientId:', patientId);
-      if (!user) {
-        setError('User must be authenticated to upload files');
-        return;
-      }
-
-      setIsUploading(true);
-      setError(null);
-
-      try {
-        for (const file of selectedFiles) {
-          const fileId = uuidv4();
-          const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
-          
-          const snapshot = await uploadBytes(storageRef, file.file);
-          const downloadURL = await getDownloadURL(snapshot.ref);
-          
-          const fileData: DentalFile = {
-            id: fileId,
-            url: downloadURL,
-            name: file.file.name,
-            type: { id: 'unsorted', name: 'Unsorted' },
-            format: file.format,
-            userId: user.uid,
-            patientId,
-            createdAt: new Date().toISOString(),
-            group: { id: 'unsorted', name: 'Unsorted' },
-            date: new Date().toISOString(),
-            fileType: file.fileType
-          };
-
-          await addDoc(collection(db, 'files'), fileData);
-          await addFile(fileData);
+      for (const file of selectedFiles) {
+        const fileId = uuidv4();
+        const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
+        
+        // Ensure file.file is of type File
+        if (!(file.file instanceof File)) {
+          throw new Error('Invalid file type');
         }
 
-        // First, get the current patient data
-        const patientDoc = doc(db, 'patients', patientId);
-        const patientSnapshot = await getDoc(patientDoc);
-        const currentImageCount = patientSnapshot.data()?.imageCount || 0;
+        const snapshot = await uploadBytes(storageRef, file.file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        const fileData: DentalFile = {
+          id: fileId,
+          url: downloadURL,
+          name: file.file.name,
+          type: { id: 'unsorted', name: 'Unsorted' },
+          format: file.format,
+          userId: user.uid,
+          patientId,
+          createdAt: new Date().toISOString(),
+          group: { id: 'unsorted', name: 'Unsorted' },
+          date: new Date().toISOString(),
+          fileType: file.fileType
+        };
 
-        // Then update with the new count
-        await updateDoc(patientDoc, {
-          imageCount: currentImageCount + selectedFiles.length,
-          lastImageDate: new Date().toISOString()
-        });
-
-        setSelectedFiles([]);
-        onClose();
-      } catch (err) {
-        console.error("Error in handleUpload:", err);
-        setError("An error occurred while uploading files. Please try again.");
-      } finally {
-        setIsUploading(false);
+        await addDoc(collection(db, 'files'), fileData);
+        await addFile(fileData);
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      // Show user-friendly error message
+
+      // Update patient image count
+      const patientRef = doc(db, 'patients', patientId);
+      await updateDoc(patientRef, {
+        imageCount: increment(selectedFiles.length),
+        lastImageDate: new Date().toISOString()
+      });
+
+      setSelectedFiles([]);
+      onClose();
+    } catch (err) {
+      console.error("Error in handleUpload:", err);
+      setError("An error occurred while uploading files. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
