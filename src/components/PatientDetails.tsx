@@ -2,36 +2,41 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
 import { usePatientFiles } from '../hooks/useFirestore';
-import { DentalFile, ImageGroup } from '../types';
+import { DentalFile, Patient } from '../types';
 
 export function PatientDetails() {
   const { patientId } = useParams<{ patientId: string }>();
   const { getPatient } = usePatients();
   const { getPatientFiles } = usePatientFiles(patientId || '');
   const [files, setFiles] = useState<DentalFile[]>([]);
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchFiles = async () => {
+    const fetchData = async () => {
       try {
-        const fetchedFiles = await getPatientFiles();
-        setFiles(fetchedFiles);
+        setIsLoading(true);
+        if (patientId) {
+          const fetchedPatient = await getPatient(patientId);
+          setPatient(fetchedPatient);
+          const fetchedFiles = await getPatientFiles();
+          setFiles(fetchedFiles);
+        }
       } catch (err) {
-        setError('Failed to fetch patient files');
+        console.error('Error fetching data:', err);
+        setError('Failed to fetch patient data');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchFiles();
-  }, [getPatientFiles]);
-
-  const patient = patientId ? getPatient(patientId) : null;
+    fetchData();
+  }, [patientId, getPatient, getPatientFiles]);
 
   const filesByGroup = useMemo(() => {
     return files.reduce<Record<string, DentalFile[]>>((acc, file) => {
-      const groupId = file.group?.id || 'Unsorted';
+      const groupId = file.group || 'Unsorted';
       if (!acc[groupId]) {
         acc[groupId] = [];
       }
