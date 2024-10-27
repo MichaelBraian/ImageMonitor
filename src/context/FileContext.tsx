@@ -9,7 +9,7 @@ interface FileContextType {
   files: DentalFile[];
   getPatientFiles: (patientId: string) => Promise<DentalFile[]>;
   getFile: (fileId: string) => Promise<DentalFile | undefined>;
-  addFile: (file: DentalFile) => Promise<void>;
+  addFile: (file: Omit<DentalFile, 'id'>) => Promise<DentalFile>;
   updateFileGroup: (fileId: string, group: string) => Promise<void>;
   updateFileCategory: (fileId: string, category: string) => Promise<void>;
   deleteFile: (fileId: string) => Promise<void>;
