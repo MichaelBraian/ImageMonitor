@@ -75,7 +75,7 @@ export function PatientDetails() {
         <ImageUploadModal
           isOpen={isUploadModalOpen}
           onClose={() => setIsUploadModalOpen(false)}
-          patientId={patientId || ''}
+          patientId={patientId}
         />
       )}
     </div>

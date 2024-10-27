@@ -16,7 +16,7 @@ interface ImageUploadModalProps {
   patientId: string;
 }
 
-export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModalProps) {
+const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ isOpen, onClose, patientId }) => {
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +37,14 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   }, []);
 
   useEffect(() => {
-    console.log('ImageUploadModal rendered with patientId:', patientId);
+    // Add this check to prevent undefined patientId
     if (!patientId) {
-      setError('Patient ID is missing. Please try again or contact support.');
-    } else {
-      setError(null);
+      console.error('PatientId is required but not provided');
+      onClose();
+      return;
     }
+    
+    console.log('ImageUploadModal rendered with patientId:', patientId);
   }, [patientId]);
 
   const getFileFormat = (file: File): '2D' | 'PLY' | 'STL' => {
@@ -89,59 +91,63 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
     }
   }, []);
 
-  const handleUpload = async () => {
-    console.log('handleUpload called with patientId:', patientId);
-    if (!user) {
-      setError('User must be authenticated to upload files');
-      return;
-    }
-
-    if (!patientId) {
-      setError('Patient ID is missing. Please try again or contact support.');
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-
+  const handleUpload = async (files: File[]) => {
     try {
-      for (const file of selectedFiles) {
-        const fileId = uuidv4();
-        const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
-        
-        const snapshot = await uploadBytes(storageRef, file.file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        
-        const fileData: DentalFile = {
-          id: fileId,
-          url: downloadURL,
-          name: file.file.name,
-          type: { id: 'unsorted', name: 'Unsorted' } as ImageCategory,
-          format: file.format,
-          userId: user.uid,
-          patientId,
-          createdAt: new Date().toISOString(),
-          group: { id: 'unsorted', name: 'Unsorted' } as ImageGroup,
-          date: new Date().toISOString(),
-          fileType: file.fileType
-        };
-
-        await addDoc(collection(db, 'files'), fileData);
-        await addFile(fileData);
+      if (!patientId) {
+        throw new Error('Patient ID is required for upload');
+      }
+      
+      console.log('handleUpload called with patientId:', patientId);
+      if (!user) {
+        setError('User must be authenticated to upload files');
+        return;
       }
 
-      await updatePatient(patientId, {
-        imageCount: (prev) => prev + selectedFiles.length,
-        lastImageDate: new Date().toISOString()
-      });
+      setIsUploading(true);
+      setError(null);
 
-      setSelectedFiles([]);
-      onClose();
-    } catch (err) {
-      console.error("Error in handleUpload:", err);
-      setError("An error occurred while uploading files. Please try again.");
-    } finally {
-      setIsUploading(false);
+      try {
+        for (const file of selectedFiles) {
+          const fileId = uuidv4();
+          const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
+          
+          const snapshot = await uploadBytes(storageRef, file.file);
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          
+          const fileData: DentalFile = {
+            id: fileId,
+            url: downloadURL,
+            name: file.file.name,
+            type: { id: 'unsorted', name: 'Unsorted' } as ImageCategory,
+            format: file.format,
+            userId: user.uid,
+            patientId,
+            createdAt: new Date().toISOString(),
+            group: { id: 'unsorted', name: 'Unsorted' } as ImageGroup,
+            date: new Date().toISOString(),
+            fileType: file.fileType
+          };
+
+          await addDoc(collection(db, 'files'), fileData);
+          await addFile(fileData);
+        }
+
+        await updatePatient(patientId, {
+          imageCount: (prev) => prev + selectedFiles.length,
+          lastImageDate: new Date().toISOString()
+        });
+
+        setSelectedFiles([]);
+        onClose();
+      } catch (err) {
+        console.error("Error in handleUpload:", err);
+        setError("An error occurred while uploading files. Please try again.");
+      } finally {
+        setIsUploading(false);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      // Show user-friendly error message
     }
   };
 
@@ -271,4 +277,6 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
       </div>
     </div>
   );
-}
+};
+
+export default ImageUploadModal;
