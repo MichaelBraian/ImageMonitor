@@ -72,7 +72,7 @@ export function PatientDetails() {
   };
 
   const handleFileClick = (file: DentalFile) => {
-    console.log('Clicked file:', file); // Added logging
+    console.log('Clicked file:', file);
     console.log('Navigating to editor with file ID:', file.id);
     navigate(`/editor/${file.id}`);
   };
@@ -95,14 +95,15 @@ export function PatientDetails() {
             <h3 className="text-xl font-semibold mb-2">{groupId}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {groupFiles.map((file) => (
-                <div key={file.id} className="border rounded-lg overflow-hidden">
+                <div 
+                  key={file.id} 
+                  className="border rounded-lg overflow-hidden cursor-pointer" 
+                  onClick={() => handleFileClick(file)}
+                >
                   {renderFile(file)}
                   <div className="p-2">
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-gray-500">{file.type} - {new Date(file.date).toLocaleDateString()}</p>
-                    <Link to={`/editor/${file.id}`} className="text-blue-500 hover:underline">
-                      Edit
-                    </Link>
                   </div>
                 </div>
               ))}

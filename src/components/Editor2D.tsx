@@ -23,7 +23,7 @@ export function Editor2D({ file }: Editor2DProps) {
     return <div>Loading image...</div>;
   }
 
-  const tools = [
+  const tools: { icon: React.ElementType; label: string; onClick: () => void }[] = [
     // Add your tools here, for example:
     // { icon: CropIcon, label: 'Crop', onClick: handleCrop },
     // { icon: RotateIcon, label: 'Rotate', onClick: handleRotate },

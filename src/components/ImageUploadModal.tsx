@@ -119,8 +119,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         const snapshot = await uploadBytes(storageRef, file.file);
         const downloadURL = await getDownloadURL(snapshot.ref);
         
-        const fileData: DentalFile = {
-          id: fileId,
+        const fileData: Omit<DentalFile, 'id'> = {
           url: downloadURL,
           name: file.file.name,
           type: 'Unsorted',
@@ -134,8 +133,9 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         };
 
         const docRef = await addDoc(collection(db, 'files'), fileData);
-        console.log('File added to Firestore:', docRef.id, fileData);
-        uploadedFiles.push(fileData);
+        console.log('File added to Firestore with ID:', docRef.id);
+        const addedFile = { id: docRef.id, ...fileData };
+        uploadedFiles.push(addedFile);
       }
 
       // Update patient image count

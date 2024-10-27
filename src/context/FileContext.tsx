@@ -56,9 +56,11 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const addFile = useCallback(async (file: DentalFile) => {
+  const addFile = useCallback(async (file: Omit<DentalFile, 'id'>) => {
     const docRef = await addDoc(collection(db, 'files'), file);
-    setFiles(prev => [...prev, { ...file, id: docRef.id }]);
+    const newFile = { ...file, id: docRef.id };
+    setFiles(prev => [...prev, newFile]);
+    return newFile;
   }, []);
 
   const updateFileGroup = useCallback(async (fileId: string, group: string) => {

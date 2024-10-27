@@ -7,7 +7,7 @@ import { DentalFile } from '../types';
 
 export function ImageEditor() {
   const { imageId } = useParams<{ imageId: string }>();
-  console.log('ImageEditor received imageId:', imageId); // Added logging
+  console.log('ImageEditor received imageId:', imageId);
   const navigate = useNavigate();
   const { getFile } = useFiles();
   const [file, setFile] = useState<DentalFile | null>(null);
@@ -20,7 +20,7 @@ export function ImageEditor() {
         try {
           setLoading(true);
           const fetchedFile = await getFile(imageId);
-          console.log('Fetched file:', fetchedFile); // Added logging
+          console.log('Fetched file:', fetchedFile);
           if (fetchedFile) {
             setFile(fetchedFile);
           } else {
