@@ -1,5 +1,5 @@
-import React from 'react';
-import ReactImagePickerEditor, { ImagePickerConf } from 'react-image-picker-editor';
+import React, { useEffect, useState } from 'react';
+import ReactImagePickerEditor from 'react-image-picker-editor';
 import 'react-image-picker-editor/dist/index.css';
 
 interface Editor2DProps {
@@ -9,18 +9,51 @@ interface Editor2DProps {
 }
 
 export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose }) => {
-  const config: ImagePickerConf = {
+  const [isLoading, setIsLoading] = useState(true);
+  const [initialImage, setInitialImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setInitialImage(base64data);
+          setIsLoading(false);
+        };
+        
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error('Error loading image:', error);
+        setIsLoading(false);
+      }
+    };
+
+    loadImage();
+  }, [imageUrl]);
+
+  const config = {
     borderRadius: '8px',
     language: 'en',
     width: '800px',
     height: '400px',
     objectFit: 'contain',
     compressInitial: null,
-    hideDeleteBtn: true,
-    hideDownloadBtn: false,
-    hideEditBtn: false,
-    hideAddBtn: true
   };
+
+  if (isLoading || !initialImage) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-4 rounded-lg">
+          Loading editor...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -29,11 +62,17 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
           <h2 className="text-xl font-bold">Edit Image</h2>
         </div>
         
-        <ReactImagePickerEditor
-          config={config}
-          imageSrcProp={imageUrl}
-          imageChanged={(newDataUri: string) => { onSave(newDataUri) }}
-        />
+        <div className="relative">
+          <ReactImagePickerEditor
+            config={config}
+            imageSrcProp={initialImage}
+            imageChanged={(newDataUri: string) => {
+              if (newDataUri && newDataUri !== initialImage) {
+                onSave(newDataUri);
+              }
+            }}
+          />
+        </div>
         
         <div className="mt-4 flex justify-end space-x-2">
           <button
