@@ -60,7 +60,7 @@ export const usePatientFiles = (patientId: string) => {
     const filesRef = collection(db, 'files').withConverter(dentalFileConverter);
     const filesQuery = query(filesRef, where('patientId', '==', patientId));
     const querySnapshot = await getDocs(filesQuery);
-    const files = querySnapshot.docs.map(doc => doc.data());
+    const files = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
     console.log('Fetched patient files:', files);
     return files;
   };
