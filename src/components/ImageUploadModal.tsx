@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { X, Upload, ImageIcon, Loader2, FileType as FileTypeIcon } from 'lucide-react';
 import { useFiles } from '../context/FileContext';
 import { usePatients } from '../context/PatientContext';
-import { FileType, DentalFile, ImageCategory, ImageGroup, PreviewFile } from '../types';
+import { FileType, DentalFile, ImageCategory, ImageGroup, PreviewFile, Patient } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, db, auth } from '../firebase/config';
