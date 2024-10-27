@@ -40,6 +40,19 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
       setIsLoading(true);
       
       try {
+        // Create canvas first
+        if (!canvasRef.current) {
+          console.error('Canvas ref not ready');
+          return;
+        }
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('Could not get canvas context');
+          return;
+        }
+
         // Get a fresh download URL from Firebase
         const storage = getStorage();
         const imageRef = ref(storage, imageUrl);
@@ -47,55 +60,59 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         
         console.log('Got fresh download URL:', freshUrl);
         
+        // Create and load image
         const image = new Image();
         image.crossOrigin = "anonymous";
         
-        // Create a promise to handle image loading
-        const imageLoadPromise = new Promise((resolve, reject) => {
+        await new Promise((resolve, reject) => {
           image.onload = () => {
-            console.log('Image loaded successfully:', {
+            console.log('Image loaded with dimensions:', {
               width: image.width,
               height: image.height,
-              src: image.src,
-              complete: image.complete,
               naturalWidth: image.naturalWidth,
               naturalHeight: image.naturalHeight
             });
+
+            // Set canvas dimensions
+            canvas.width = image.naturalWidth || image.width;
+            canvas.height = image.naturalHeight || image.height;
+
+            // Draw initial image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Add this check and logging
+            try {
+              ctx.drawImage(image, 0, 0);
+              console.log('Successfully drew image to canvas');
+              
+              // Verify the canvas has content
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              console.log('Canvas image data:', {
+                width: imageData.width,
+                height: imageData.height,
+                hasData: imageData.data.some(x => x !== 0)
+              });
+            } catch (drawError) {
+              console.error('Error drawing to canvas:', drawError);
+              reject(drawError);
+              return;
+            }
+            
+            setOriginalImage(image);
             resolve(image);
           };
 
           image.onerror = (error) => {
-            console.error('Error loading image:', error);
-            reject(error);
+            console.error('Image load error:', error);
+            reject(new Error('Failed to load image'));
           };
+
+          image.src = freshUrl;
         });
 
-        image.src = freshUrl;
-        
-        // Wait for image to load
-        await imageLoadPromise;
-        
-        if (canvasRef.current && image.complete && image.naturalWidth > 0) {
-          const canvas = canvasRef.current;
-          canvas.width = image.naturalWidth;
-          canvas.height = image.naturalHeight;
-          
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            // Draw the original image first to verify it loads
-            ctx.drawImage(image, 0, 0);
-            console.log('Image drawn to canvas successfully');
-            
-            setOriginalImage(image);
-            applyTransformations(image);
-          } else {
-            throw new Error('Could not get canvas context');
-          }
-        } else {
-          throw new Error('Canvas not ready or image not properly loaded');
-        }
-        
+        console.log('Image loaded and drawn to canvas');
         setIsLoading(false);
+
       } catch (error) {
         console.error('Error in loadImage:', error);
         setIsLoading(false);
@@ -126,21 +143,14 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
       return;
     }
 
-    console.log('Applying transformations:', {
-      rotation,
-      flipH,
-      flipV,
-      filters,
-      imageWidth: image.width,
-      imageHeight: image.height,
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height
-    });
+    // Store original dimensions
+    const originalWidth = canvas.width;
+    const originalHeight = canvas.height;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Set up filters before any drawing
+    // Set up filters
     ctx.filter = `
       contrast(${filters.contrast}%)
       brightness(${filters.brightness}%)
@@ -153,8 +163,8 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     // Save context state
     ctx.save();
 
-    // Move to center for rotation
-    ctx.translate(canvas.width/2, canvas.height/2);
+    // Move to center
+    ctx.translate(originalWidth / 2, originalHeight / 2);
 
     // Apply rotation
     ctx.rotate((rotation * Math.PI) / 180);
@@ -162,21 +172,20 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     // Apply flips
     ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
 
-    // Draw image
+    // Draw image centered
     try {
       ctx.drawImage(
         image,
-        -image.width/2,
-        -image.height/2,
-        image.width,
-        image.height
+        -originalWidth / 2,
+        -originalHeight / 2,
+        originalWidth,
+        originalHeight
       );
-      console.log('Transformations applied successfully');
     } catch (error) {
-      console.error('Error drawing image with transformations:', error);
+      console.error('Error drawing image:', error);
     }
 
-    // Restore context state
+    // Restore context
     ctx.restore();
   };
 
@@ -229,10 +238,16 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
               </button>
             </div>
           ) : (
-            <div className="relative max-w-full max-h-full">
+            <div className="relative max-w-full max-h-full overflow-auto">
               <canvas 
                 ref={canvasRef} 
                 className="shadow-lg"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto'
+                }}
               />
             </div>
           )}
