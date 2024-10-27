@@ -30,6 +30,7 @@ export function PatientDetails() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
+  const [editingFile, setEditingFile] = useState<DentalFile | null>(null);
 
   const fetchPatientFiles = useCallback(async () => {
     if (patientId) {
@@ -52,24 +53,10 @@ export function PatientDetails() {
     fetchPatient();
   }, [patientId, getPatient]);
 
-  const handleFileClick = async (file: DentalFile) => {
+  const handleFileClick = (file: DentalFile) => {
     if (file.fileType === '2D') {
-      try {
-        setCurrentFileId(file.id); // Store the current file ID
-        const response = await fetch(file.url);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        
-        reader.onloadend = () => {
-          const base64data = reader.result as string;
-          setSelectedImage(base64data);
-          setShowEditor(true);
-        };
-        
-        reader.readAsDataURL(blob);
-      } catch (error) {
-        console.error('Error loading image:', error);
-      }
+      setEditingFile(file);
+      setIsEditing(true);
     } else {
       navigate(`/editor/${file.id}`);
     }
@@ -142,6 +129,37 @@ export function PatientDetails() {
       );
     }
     return null;
+  }
+
+  if (isEditing && editingFile) {
+    return (
+      <Editor2D
+        imageUrl={editingFile.url}
+        onSave={async (editedImage) => {
+          try {
+            // Convert base64 to blob
+            const response = await fetch(editedImage);
+            const blob = await response.blob();
+            
+            // Update the file
+            await updateFileImage(editingFile.id, blob);
+            
+            // Refresh the files list
+            await fetchPatientFiles();
+            
+            // Close editor
+            setIsEditing(false);
+            setEditingFile(null);
+          } catch (error) {
+            console.error('Error saving edited image:', error);
+          }
+        }}
+        onClose={() => {
+          setIsEditing(false);
+          setEditingFile(null);
+        }}
+      />
+    );
   }
 
   return (
@@ -279,27 +297,6 @@ export function PatientDetails() {
         patient={patient}
         onUpdate={updatePatient}
       />
-
-      {showEditor && selectedImage && currentFileId && (
-        <Editor2D
-          imageUrl={selectedImage}
-          onSave={async (editedImage: string) => {
-            try {
-              // Convert the edited image to a blob
-              const response = await fetch(editedImage);
-              const blob = await response.blob();
-              
-              await updateFileImage(currentFileId, blob);
-              await fetchPatientFiles(); // Refresh the files list
-              setShowEditor(false);
-            } catch (error) {
-              console.error('Error saving edited image:', error);
-              alert('Failed to save the edited image. Please try again.');
-            }
-          }}
-          onClose={() => setShowEditor(false)}
-        />
-      )}
     </div>
   );
 }
