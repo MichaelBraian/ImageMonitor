@@ -87,6 +87,10 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     const rect = imageRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Ensure we're clicking inside the image
+    if (x < 0 || x > rect.width || y < 0 || y > rect.height) return;
+
     setCropStart({ x, y });
     setCropArea({ x, y, width: 0, height: 0 });
   };
@@ -95,8 +99,8 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     if (!isCropping || !cropStart || !imageRef.current) return;
 
     const rect = imageRef.current.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+    const currentX = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+    const currentY = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
 
     setCropArea({
       x: Math.min(cropStart.x, currentX),
@@ -114,30 +118,65 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     const ctx = canvas.getContext('2d');
     if (!ctx || !imageRef.current) return;
 
-    // Calculate crop dimensions relative to original image
-    const scale = imageRef.current.naturalWidth / imageRef.current.width;
-    canvas.width = cropArea.width * scale;
-    canvas.height = cropArea.height * scale;
+    // Create a temporary canvas for the rotated/transformed image
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
 
+    // Set canvas sizes
+    const img = imageRef.current;
+    tempCanvas.width = img.width;
+    tempCanvas.height = img.height;
+
+    // Draw the image with current transformations
+    tempCtx.save();
+    tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+    tempCtx.rotate((rotation * Math.PI) / 180);
+    tempCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    tempCtx.translate(-tempCanvas.width / 2, -tempCanvas.height / 2);
+    tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+    tempCtx.restore();
+
+    // Set final canvas size to crop dimensions
+    canvas.width = cropArea.width;
+    canvas.height = cropArea.height;
+
+    // Draw the cropped portion
     ctx.drawImage(
-      imageRef.current,
-      cropArea.x * scale,
-      cropArea.y * scale,
-      cropArea.width * scale,
-      cropArea.height * scale,
+      tempCanvas,
+      cropArea.x,
+      cropArea.y,
+      cropArea.width,
+      cropArea.height,
       0,
       0,
-      canvas.width,
-      canvas.height
+      cropArea.width,
+      cropArea.height
     );
 
+    // Apply current filters to the cropped image
+    ctx.filter = `
+      contrast(${filters.contrast}%)
+      brightness(${filters.brightness}%)
+      grayscale(${filters.grayscale}%)
+      saturate(${filters.saturate}%)
+      sepia(${filters.sepia}%)
+      blur(${filters.blur}px)
+    `;
+
     // Update the display URL with cropped image
-    setDisplayUrl(canvas.toDataURL());
+    const newUrl = canvas.toDataURL('image/jpeg', 1.0);
+    setDisplayUrl(newUrl);
     
     // Reset crop mode
     setIsCropping(false);
     setCropStart(null);
     setCropArea(null);
+
+    // Reset rotation and flips after crop
+    setRotation(0);
+    setFlipH(false);
+    setFlipV(false);
   };
 
   return (
@@ -170,7 +209,12 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
           onMouseDown={handleCropStart}
           onMouseMove={handleCropMove}
           onMouseUp={handleCropEnd}
-          onMouseLeave={handleCropEnd}
+          onMouseLeave={() => {
+            if (isCropping) {
+              setCropStart(null);
+              setCropArea(null);
+            }
+          }}
         >
           {isLoading ? (
             <div className="flex flex-col items-center">
@@ -190,15 +234,30 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
                 }}
               />
               {cropArea && isCropping && (
-                <div
-                  className="absolute border-2 border-blue-500 bg-blue-500 bg-opacity-20"
-                  style={{
-                    left: `${cropArea.x}px`,
-                    top: `${cropArea.y}px`,
-                    width: `${cropArea.width}px`,
-                    height: `${cropArea.height}px`,
-                  }}
-                />
+                <>
+                  {/* Dark overlay outside crop area */}
+                  <div className="absolute inset-0 bg-black bg-opacity-50">
+                    <div
+                      className="absolute bg-transparent"
+                      style={{
+                        left: `${cropArea.x}px`,
+                        top: `${cropArea.y}px`,
+                        width: `${cropArea.width}px`,
+                        height: `${cropArea.height}px`,
+                      }}
+                    />
+                  </div>
+                  {/* Crop area border */}
+                  <div
+                    className="absolute border-2 border-blue-500"
+                    style={{
+                      left: `${cropArea.x}px`,
+                      top: `${cropArea.y}px`,
+                      width: `${cropArea.width}px`,
+                      height: `${cropArea.height}px`,
+                    }}
+                  />
+                </>
               )}
             </div>
           ) : (
