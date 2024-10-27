@@ -7,11 +7,14 @@ declare module 'react-image-picker-editor' {
     objectFit?: string;
     compressInitial?: number | null;
     darkMode?: boolean;
-    rtl?: boolean;
-    hideDeleteBtn?: boolean;
-    hideDownloadBtn?: boolean;
-    hideEditBtn?: boolean;
-    hideAddBtn?: boolean;
+    cropTool?: boolean;
+    rotateTool?: boolean;
+    flipTool?: boolean;
+    scaleSlider?: boolean;
+    filterTool?: boolean;
+    uploadBtn?: boolean;
+    useInitialImage?: boolean;
+    defaultImage?: string;
   }
 
   interface ReactImagePickerEditorProps {
