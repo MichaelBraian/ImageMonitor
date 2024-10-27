@@ -50,36 +50,56 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         const image = new Image();
         image.crossOrigin = "anonymous";
         
-        image.onload = () => {
-          console.log('Image loaded successfully:', {
-            width: image.width,
-            height: image.height,
-            src: image.src
-          });
-          
-          if (canvasRef.current) {
-            const canvas = canvasRef.current;
-            canvas.width = image.width;
-            canvas.height = image.height;
-            setOriginalImage(image);
-            applyTransformations(image);
-          }
-          setIsLoading(false);
-        };
+        // Create a promise to handle image loading
+        const imageLoadPromise = new Promise((resolve, reject) => {
+          image.onload = () => {
+            console.log('Image loaded successfully:', {
+              width: image.width,
+              height: image.height,
+              src: image.src,
+              complete: image.complete,
+              naturalWidth: image.naturalWidth,
+              naturalHeight: image.naturalHeight
+            });
+            resolve(image);
+          };
 
-        image.onerror = (error) => {
-          console.error('Error loading image:', error);
-          setIsLoading(false);
-          alert('Failed to load image. Please try again.');
-          onClose();
-        };
+          image.onerror = (error) => {
+            console.error('Error loading image:', error);
+            reject(error);
+          };
+        });
 
         image.src = freshUrl;
+        
+        // Wait for image to load
+        await imageLoadPromise;
+        
+        if (canvasRef.current && image.complete && image.naturalWidth > 0) {
+          const canvas = canvasRef.current;
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            // Draw the original image first to verify it loads
+            ctx.drawImage(image, 0, 0);
+            console.log('Image drawn to canvas successfully');
+            
+            setOriginalImage(image);
+            applyTransformations(image);
+          } else {
+            throw new Error('Could not get canvas context');
+          }
+        } else {
+          throw new Error('Canvas not ready or image not properly loaded');
+        }
+        
+        setIsLoading(false);
       } catch (error) {
         console.error('Error in loadImage:', error);
         setIsLoading(false);
-        alert('Failed to load image. Please try again.');
-        onClose();
+        setOriginalImage(null);
       }
     };
 
@@ -110,7 +130,11 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
       rotation,
       flipH,
       flipV,
-      filters
+      filters,
+      imageWidth: image.width,
+      imageHeight: image.height,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height
     });
 
     // Clear canvas
@@ -139,13 +163,18 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
 
     // Draw image
-    ctx.drawImage(
-      image,
-      -image.width/2,
-      -image.height/2,
-      image.width,
-      image.height
-    );
+    try {
+      ctx.drawImage(
+        image,
+        -image.width/2,
+        -image.height/2,
+        image.width,
+        image.height
+      );
+      console.log('Transformations applied successfully');
+    } catch (error) {
+      console.error('Error drawing image with transformations:', error);
+    }
 
     // Restore context state
     ctx.restore();
@@ -190,14 +219,22 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
               <p className="mt-2">Loading image...</p>
             </div>
           ) : !originalImage ? (
-            <div className="text-red-500">
-              Failed to load image. Please try again.
+            <div className="text-red-500 flex flex-col items-center">
+              <p>Failed to load image. Please try again.</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Reload
+              </button>
             </div>
           ) : (
-            <canvas 
-              ref={canvasRef} 
-              className="max-w-full max-h-full shadow-lg"
-            />
+            <div className="relative max-w-full max-h-full">
+              <canvas 
+                ref={canvasRef} 
+                className="shadow-lg"
+              />
+            </div>
           )}
         </div>
 
