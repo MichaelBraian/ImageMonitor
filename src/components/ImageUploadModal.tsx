@@ -117,12 +117,12 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           id: fileId,
           url: downloadURL,
           name: file.file.name,
-          type: { id: 'unsorted', name: 'Unsorted' },
+          type: 'Unsorted', // Change this from an object to a string
           format: file.format,
           userId: user.uid,
           patientId,
           createdAt: new Date().toISOString(),
-          group: 'Unsorted',  // Changed to match the ImageGroup type
+          group: 'Unsorted',
           date: new Date().toISOString(),
           fileType: file.fileType
         };

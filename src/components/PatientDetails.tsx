@@ -40,7 +40,7 @@ export function PatientDetails() {
   const filesByGroup = useMemo(() => {
     console.log('Creating filesByGroup. Files:', JSON.stringify(files, null, 2));
     const grouped = files.reduce<Record<string, DentalFile[]>>((acc, file) => {
-      const groupId = typeof file.group === 'string' ? file.group : 'Unsorted';
+      const groupId = file.group || 'Unsorted';
       if (!acc[groupId]) {
         acc[groupId] = [];
       }
@@ -92,7 +92,7 @@ export function PatientDetails() {
                   {renderFile(file)}
                   <div className="p-2">
                     <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-gray-500">{file.fileType} - {new Date(file.date).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">{file.type} - {new Date(file.date).toLocaleDateString()}</p>
                     <Link to={`/editor/${file.id}`} className="text-blue-500 hover:underline">
                       Edit
                     </Link>

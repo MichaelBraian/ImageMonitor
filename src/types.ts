@@ -18,7 +18,7 @@ export interface DentalFile {
   id: string;
   url: string;
   name: string;
-  type: ImageCategory;
+  type: string;
   format: string;
   userId: string;
   patientId: string;
@@ -30,10 +30,11 @@ export interface DentalFile {
 
 export type FileType = '2D' | '3D';
 
-export interface ImageCategory {
-  id: string;
-  name: string;
-}
+// Remove or comment out the ImageCategory interface if it's not used elsewhere
+// export interface ImageCategory {
+//   id: string;
+//   name: string;
+// }
 
 export interface PreviewFile {
   id: string;
