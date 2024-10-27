@@ -16,6 +16,9 @@ interface FileContextType {
   updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
   refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
   updateFileImage: (fileId: string, imageBlob: Blob) => Promise<string>;
+  loadFiles: (patientId: string) => Promise<void>;
+  loading: boolean;
+  error: string | null;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
