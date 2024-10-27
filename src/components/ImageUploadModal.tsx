@@ -16,7 +16,7 @@ interface ImageUploadModalProps {
   patientId: string;
 }
 
-const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ isOpen, onClose, patientId }) => {
+export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -277,6 +277,4 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ isOpen, onClose, pa
       </div>
     </div>
   );
-};
-
-export default ImageUploadModal;
+}
