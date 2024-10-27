@@ -122,7 +122,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           userId: user.uid,
           patientId,
           createdAt: new Date().toISOString(),
-          group: { id: 'unsorted', name: 'Unsorted' },
+          group: 'Unsorted',  // Changed to match the ImageGroup type
           date: new Date().toISOString(),
           fileType: file.fileType
         };
