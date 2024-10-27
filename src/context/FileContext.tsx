@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { DentalFile, ImageCategory, ImageGroup } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { db, storage, auth } from '../firebase/config';
