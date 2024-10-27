@@ -9,23 +9,28 @@ export function Patients() {
   const { patients, searchPatients, addPatient, fetchPatients } = usePatients();
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const filteredPatients = searchPatients(searchQuery);
 
   useEffect(() => {
     fetchPatients();
-  }, [fetchPatients]);
+  }, [fetchPatients, refreshTrigger]);
 
   const handleAddPatient = async (name: string) => {
     const newPatient = await addPatient({
       name,
       lastImageDate: new Date().toISOString(),
-      imageCount: 0,
     });
     navigate(`/patients/${newPatient.id}`);
   };
 
   const handlePatientClick = (patientId: string) => {
     navigate(`/patients/${patientId}`);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setRefreshTrigger(prev => prev + 1); // This will trigger a re-fetch of patients
   };
 
   if (filteredPatients.length === 0) return <div>Loading patients...</div>;
@@ -64,7 +69,11 @@ export function Patients() {
           ))}
         </ul>
       )}
-      <AddPatientModal isOpen={isModalOpen} onAddPatient={handleAddPatient} onClose={() => setIsModalOpen(false)} />
+      <AddPatientModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleAddPatient}
+      />
     </div>
   );
 }

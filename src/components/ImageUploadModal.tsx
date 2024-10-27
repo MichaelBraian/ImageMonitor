@@ -134,10 +134,17 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
 
       // Update patient image count
       const patientRef = doc(db, 'patients', patientId);
-      await updateDoc(patientRef, {
-        imageCount: increment(selectedFiles.length),
-        lastImageDate: new Date().toISOString()
-      });
+      const patientDoc = await getDoc(patientRef);
+      if (patientDoc.exists()) {
+        const currentImageCount = patientDoc.data().imageCount || 0;
+        await updateDoc(patientRef, {
+          imageCount: currentImageCount + selectedFiles.length,
+          lastImageDate: new Date().toISOString()
+        });
+        console.log('Updated patient document:', patientId, 'New image count:', currentImageCount + selectedFiles.length);
+      } else {
+        console.error('Patient document not found:', patientId);
+      }
 
       setSelectedFiles([]);
       onClose();
