@@ -37,15 +37,14 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
   }, []);
 
   useEffect(() => {
-    // Add this check to prevent undefined patientId
-    if (!patientId) {
+    if (!patientId || patientId === '') {
       console.error('PatientId is required but not provided');
       onClose();
       return;
     }
     
     console.log('ImageUploadModal rendered with patientId:', patientId);
-  }, [patientId]);
+  }, [patientId, onClose]);
 
   const getFileFormat = (file: File): '2D' | 'PLY' | 'STL' => {
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -91,9 +90,9 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
     }
   }, []);
 
-  const handleUpload = async (files: File[]) => {
+  const handleUpload = async () => {
     try {
-      if (!patientId) {
+      if (!patientId || patientId === '') {
         throw new Error('Patient ID is required for upload');
       }
       

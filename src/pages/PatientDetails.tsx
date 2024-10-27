@@ -237,7 +237,7 @@ export function PatientDetails() {
       <ImageUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        patientId={patient.id}
+        patientId={patientId || ''}
       />
 
       <EditPatientModal
