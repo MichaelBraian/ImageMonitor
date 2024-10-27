@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Save, X, RotateCw, FlipHorizontal, FlipVertical, Crop } from 'lucide-react';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 interface Editor2DProps {
   imageUrl: string;
@@ -34,43 +35,55 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    console.log('Loading image from URL:', imageUrl);
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    
-    image.onload = () => {
-      console.log('Image loaded successfully:', {
-        width: image.width,
-        height: image.height
-      });
+    const loadImage = async () => {
+      console.log('Starting to load image from URL:', imageUrl);
+      setIsLoading(true);
       
-      if (canvasRef.current) {
-        const canvas = canvasRef.current;
-        canvas.width = image.width;
-        canvas.height = image.height;
-        setOriginalImage(image);
-        applyTransformations(image);
+      try {
+        // Get a fresh download URL from Firebase
+        const storage = getStorage();
+        const imageRef = ref(storage, imageUrl);
+        const freshUrl = await getDownloadURL(imageRef);
+        
+        console.log('Got fresh download URL:', freshUrl);
+        
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        
+        image.onload = () => {
+          console.log('Image loaded successfully:', {
+            width: image.width,
+            height: image.height,
+            src: image.src
+          });
+          
+          if (canvasRef.current) {
+            const canvas = canvasRef.current;
+            canvas.width = image.width;
+            canvas.height = image.height;
+            setOriginalImage(image);
+            applyTransformations(image);
+          }
+          setIsLoading(false);
+        };
+
+        image.onerror = (error) => {
+          console.error('Error loading image:', error);
+          setIsLoading(false);
+          alert('Failed to load image. Please try again.');
+          onClose();
+        };
+
+        image.src = freshUrl;
+      } catch (error) {
+        console.error('Error in loadImage:', error);
+        setIsLoading(false);
+        alert('Failed to load image. Please try again.');
+        onClose();
       }
-      setIsLoading(false);
     };
 
-    image.onerror = (error) => {
-      console.error('Error loading image:', error);
-      setIsLoading(false);
-      // Maybe show an error message to the user
-      alert('Failed to load image. Please try again.');
-      onClose();
-    };
-
-    // Add a timestamp to bypass cache
-    const urlWithTimestamp = `${imageUrl}?t=${new Date().getTime()}`;
-    image.src = urlWithTimestamp;
-
-    return () => {
-      // Cleanup
-      image.onload = null;
-      image.onerror = null;
-    };
+    loadImage();
   }, [imageUrl]);
 
   // Add effect to reapply transformations when any transform state changes

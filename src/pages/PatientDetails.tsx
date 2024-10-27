@@ -58,8 +58,18 @@ export function PatientDetails() {
       console.log('Opening editor with file:', {
         id: file.id,
         url: file.url,
-        type: file.type
+        type: file.type,
+        fileType: file.fileType,
+        // Log the full file object to see what we're working with
+        fullFile: file
       });
+      
+      // Verify the URL format
+      if (!file.url.startsWith('https://') && !file.url.startsWith('gs://')) {
+        console.error('Invalid URL format:', file.url);
+        return;
+      }
+      
       setEditingFile(file);
       setIsEditing(true);
     } else {
