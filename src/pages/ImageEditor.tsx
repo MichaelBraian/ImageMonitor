@@ -4,6 +4,7 @@ import { useFiles } from '../context/FileContext';
 import { ThreeDViewer } from '../components/ThreeDViewer';
 import { Editor2D } from '../components/Editor2D';
 import { DentalFile } from '../types';
+import { ArrowLeft } from 'lucide-react';
 
 export function ImageEditor() {
   const { imageId } = useParams<{ imageId: string }>();
@@ -50,8 +51,11 @@ export function ImageEditor() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <div className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 flex items-center">
+        <button onClick={() => navigate(-1)} className="mr-4">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         <h1 className="text-lg font-medium text-gray-900 dark:text-white">
           {file.fileType === '2D' ? '2D Image Editor' : '3D Model Viewer'} - {file.name}
         </h1>
