@@ -2,14 +2,14 @@ import React from 'react';
 import ReactImagePickerEditor, { ImagePickerConf } from 'react-image-picker-editor';
 import 'react-image-picker-editor/dist/index.css';
 
-interface Editor2DProps {
-  imageUrl: string;
+interface ImageEditorProps {
+  selectedImage: string;
   onSave: (editedImage: string) => void;
   onClose: () => void;
 }
 
-export const Editor2D: React.FC<Editor2DProps> = ({
-  imageUrl,
+export const ImageEditor: React.FC<ImageEditorProps> = ({
+  selectedImage,
   onSave,
   onClose
 }) => {
@@ -28,7 +28,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-3xl">
         <ReactImagePickerEditor
           config={editorConfig}
-          imageSrcProp={imageUrl}
+          imageSrcProp={selectedImage}
           imageChanged={(newDataUri) => {
             onSave(newDataUri);
           }}
@@ -41,7 +41,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({
             Cancel
           </button>
           <button
-            onClick={() => onSave(imageUrl)}
+            onClick={() => onSave(selectedImage)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg"
           >
             Save

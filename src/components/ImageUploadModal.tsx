@@ -10,6 +10,8 @@ import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
 import { increment } from 'firebase/firestore';
+import ReactImagePickerEditor, { ImagePickerConf } from 'react-image-picker-editor';
+import 'react-image-picker-editor/dist/index.css'
 
 interface ImageUploadModalProps {
   isOpen: boolean;
