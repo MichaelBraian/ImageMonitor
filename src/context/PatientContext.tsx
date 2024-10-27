@@ -1,16 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { collection, addDoc, getDocs, updateDoc, doc, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-
-export interface Patient {
-  id: string;
-  name: string;
-  lastImageDate: string;
-  imageCount: number;
-  userId: string;
-  createdAt: string;
-}
+import { Patient } from '../types';
 
 interface PatientContextType {
   patients: Patient[];
@@ -74,8 +66,12 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const getPatient = async (id: string): Promise<Patient | null> => {
-    const patient = patients.find(p => p.id === id);
-    return patient || null;
+    const docRef = doc(db, 'patients', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Patient;
+    }
+    return null;
   };
 
   const searchPatients = (query: string): Patient[] => {

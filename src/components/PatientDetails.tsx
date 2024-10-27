@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
 import { usePatientFiles } from '../hooks/useFirestore';
 import { DentalFile, Patient } from '../types';
+import { ThreeDThumbnail } from './ThreeDThumbnail';
 
 export function PatientDetails() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -36,7 +37,7 @@ export function PatientDetails() {
 
   const filesByGroup = useMemo(() => {
     return files.reduce<Record<string, DentalFile[]>>((acc, file) => {
-      const groupId = file.group || 'Unsorted';
+      const groupId = file.group;
       if (!acc[groupId]) {
         acc[groupId] = [];
       }
@@ -45,21 +46,48 @@ export function PatientDetails() {
     }, {});
   }, [files]);
 
+  const renderFile = (file: DentalFile) => {
+    if (file.fileType === '3D') {
+      return (
+        <div className="w-full h-40 flex items-center justify-center">
+          <ThreeDThumbnail fileUrl={file.url} fileFormat={file.format as 'STL' | 'PLY'} />
+        </div>
+      );
+    } else {
+      return (
+        <img
+          src={file.url}
+          alt={file.name}
+          className="w-full h-40 object-cover"
+        />
+      );
+    }
+  };
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!patient) return <div>Patient not found</div>;
 
   return (
-    <div>
-      <h2>{patient.name}'s Files</h2>
+    <div className="p-4">
+      <h2 className="text-2xl font-bold mb-4">{patient?.name}'s Files</h2>
       {Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
-        <div key={groupId}>
-          <h3>{groupId}</h3>
-          <ul>
+        <div key={groupId} className="mb-6">
+          <h3 className="text-xl font-semibold mb-2">{groupId}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {groupFiles.map((file) => (
-              <li key={file.id}>{file.name}</li>
+              <div key={file.id} className="border rounded-lg overflow-hidden">
+                {renderFile(file)}
+                <div className="p-2">
+                  <p className="font-medium">{file.name}</p>
+                  <p className="text-sm text-gray-500">{file.fileType} - {new Date(file.date).toLocaleDateString()}</p>
+                  <Link to={`/editor/${file.id}`} className="text-blue-500 hover:underline">
+                    Edit
+                  </Link>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       ))}
     </div>

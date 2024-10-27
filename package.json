@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@firebase/firestore-types": "^2.5.0",
+    "@firebase/storage-types": "^0.6.0",
     "@google/model-viewer": "^4.0.0",
     "@react-three/drei": "^9.0.0",
     "@react-three/fiber": "^8.0.0",
@@ -24,9 +26,7 @@
     "react-router-dom": "^6.10.0",
     "recharts": "^2.13.0",
     "three": "^0.169.0",
-    "uuid": "^10.0.0",
-    "@firebase/firestore-types": "^2.5.0",
-    "@firebase/storage-types": "^0.6.0"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.194",
