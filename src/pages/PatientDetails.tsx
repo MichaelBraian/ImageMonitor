@@ -82,7 +82,9 @@ export function PatientDetails() {
     };
 
     uniqueFiles.forEach(file => {
-      groups[file.group].push(file);
+      // Check if file.group exists and is valid, otherwise use 'Unsorted'
+      const group = file.group && groups.hasOwnProperty(file.group) ? file.group : 'Unsorted';
+      groups[group].push(file);
     });
 
     console.log("Files grouped by category:", groups);

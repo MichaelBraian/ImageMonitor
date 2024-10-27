@@ -12,22 +12,25 @@ export interface Patient {
   createdAt: string;
 }
 
+export type ImageGroup = 'Before' | 'After' | 'Unsorted';
+
 export interface DentalFile {
   id: string;
   url: string;
   name: string;
+  type: ImageCategory;
+  format: string;
+  userId: string;
+  patientId: string;
+  createdAt: string;
+  group: ImageGroup;  // This should be one of the three valid values
+  date: string;
   fileType: '2D' | '3D';
-  // Add other properties as needed
 }
 
 export type FileType = '2D' | '3D';
 
 export interface ImageCategory {
-  id: string;
-  name: string;
-}
-
-export interface ImageGroup {
   id: string;
   name: string;
 }
