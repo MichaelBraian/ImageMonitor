@@ -75,19 +75,21 @@ export function PatientDetails() {
 
   // Group files by category and group
   const filesByGroup = useMemo(() => {
-    const groups: Record<ImageGroup, DentalFile[]> = {
+    const groups = {
       Before: [],
       After: [],
       Unsorted: []
     };
 
     uniqueFiles.forEach(file => {
-      // Check if file.group exists and is valid, otherwise use 'Unsorted'
-      const group = file.group && groups.hasOwnProperty(file.group) ? file.group : 'Unsorted';
-      groups[group].push(file);
+      const groupId = file.group?.id || 'unsorted';
+      const validGroup = groups.hasOwnProperty(groupId) ? groupId : 'Unsorted';
+      if (!groups[validGroup]) {
+        groups[validGroup] = [];
+      }
+      groups[validGroup].push(file);
     });
 
-    console.log("Files grouped by category:", groups);
     return groups;
   }, [uniqueFiles]);
 
@@ -176,13 +178,15 @@ export function PatientDetails() {
           </button>
         </div>
 
-        {Object.entries(filesByGroup).map(([group, groupFiles]) => (
+        {Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
           groupFiles.length > 0 && (
-            <div key={group} className="mb-4">
+            <div key={groupId} className="mb-4">
               <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="flex items-center">
                   <Grid className="w-4 h-4 mr-2 text-gray-400" />
-                  <span className="text-gray-900 dark:text-white font-medium">{group}</span>
+                  <span className="text-gray-900 dark:text-white font-medium">
+                    {groupId.charAt(0).toUpperCase() + groupId.slice(1)}
+                  </span>
                   <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
                     ({groupFiles.length})
                   </span>
