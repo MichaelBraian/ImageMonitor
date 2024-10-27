@@ -51,8 +51,29 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         const storage = getStorage();
         const imageRef = ref(storage, imageUrl);
         const url = await getDownloadURL(imageRef);
-        console.log('Got image URL:', url);
-        setDisplayUrl(url);
+        
+        // Create a new image with CORS settings
+        const img = new Image();
+        img.crossOrigin = "anonymous"; // This is crucial for preventing canvas tainting
+        
+        // Create a promise to handle image loading
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = url;
+        });
+
+        // Convert image to base64 to prevent CORS issues
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const base64Url = canvas.toDataURL('image/jpeg');
+          setDisplayUrl(base64Url);
+        }
+        
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading image:', error);
@@ -113,70 +134,81 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const handleCropEnd = () => {
     if (!cropArea || !imageRef.current) return;
     
-    // Create a canvas to perform the crop
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx || !imageRef.current) return;
+    try {
+      // Create a canvas to perform the crop
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx || !imageRef.current) return;
 
-    // Create a temporary canvas for the rotated/transformed image
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
+      // Create a temporary canvas for the rotated/transformed image
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
 
-    // Set canvas sizes
-    const img = imageRef.current;
-    tempCanvas.width = img.width;
-    tempCanvas.height = img.height;
+      // Set canvas sizes
+      const img = imageRef.current;
+      tempCanvas.width = img.naturalWidth || img.width;
+      tempCanvas.height = img.naturalHeight || img.height;
 
-    // Draw the image with current transformations
-    tempCtx.save();
-    tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
-    tempCtx.rotate((rotation * Math.PI) / 180);
-    tempCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-    tempCtx.translate(-tempCanvas.width / 2, -tempCanvas.height / 2);
-    tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-    tempCtx.restore();
+      // Calculate scale factor between displayed image and original size
+      const scaleFactor = img.naturalWidth / img.width;
 
-    // Set final canvas size to crop dimensions
-    canvas.width = cropArea.width;
-    canvas.height = cropArea.height;
+      // Draw the image with current transformations
+      tempCtx.save();
+      tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+      tempCtx.rotate((rotation * Math.PI) / 180);
+      tempCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+      tempCtx.translate(-tempCanvas.width / 2, -tempCanvas.height / 2);
+      tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+      tempCtx.restore();
 
-    // Draw the cropped portion
-    ctx.drawImage(
-      tempCanvas,
-      cropArea.x,
-      cropArea.y,
-      cropArea.width,
-      cropArea.height,
-      0,
-      0,
-      cropArea.width,
-      cropArea.height
-    );
+      // Set final canvas size to crop dimensions
+      canvas.width = cropArea.width * scaleFactor;
+      canvas.height = cropArea.height * scaleFactor;
 
-    // Apply current filters to the cropped image
-    ctx.filter = `
-      contrast(${filters.contrast}%)
-      brightness(${filters.brightness}%)
-      grayscale(${filters.grayscale}%)
-      saturate(${filters.saturate}%)
-      sepia(${filters.sepia}%)
-      blur(${filters.blur}px)
-    `;
+      // Draw the cropped portion
+      ctx.drawImage(
+        tempCanvas,
+        cropArea.x * scaleFactor,
+        cropArea.y * scaleFactor,
+        cropArea.width * scaleFactor,
+        cropArea.height * scaleFactor,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
 
-    // Update the display URL with cropped image
-    const newUrl = canvas.toDataURL('image/jpeg', 1.0);
-    setDisplayUrl(newUrl);
-    
-    // Reset crop mode
-    setIsCropping(false);
-    setCropStart(null);
-    setCropArea(null);
+      // Apply current filters
+      ctx.filter = `
+        contrast(${filters.contrast}%)
+        brightness(${filters.brightness}%)
+        grayscale(${filters.grayscale}%)
+        saturate(${filters.saturate}%)
+        sepia(${filters.sepia}%)
+        blur(${filters.blur}px)
+      `;
 
-    // Reset rotation and flips after crop
-    setRotation(0);
-    setFlipH(false);
-    setFlipV(false);
+      // Update the display URL with cropped image
+      const newUrl = canvas.toDataURL('image/jpeg', 1.0);
+      setDisplayUrl(newUrl);
+      
+      // Reset crop mode
+      setIsCropping(false);
+      setCropStart(null);
+      setCropArea(null);
+
+      // Reset rotation and flips after crop
+      setRotation(0);
+      setFlipH(false);
+      setFlipV(false);
+    } catch (error) {
+      console.error('Error during crop:', error);
+      alert('Failed to crop image. Please try again.');
+      setIsCropping(false);
+      setCropStart(null);
+      setCropArea(null);
+    }
   };
 
   return (
