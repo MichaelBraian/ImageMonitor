@@ -70,6 +70,9 @@ export function PatientDetails() {
     }
   };
 
+  console.log('Rendering PatientDetails. Patient:', JSON.stringify(patient, null, 2));
+  console.log('FilesByGroup:', JSON.stringify(filesByGroup, null, 2));
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!patient) return <div>Patient not found</div>;

@@ -58,6 +58,7 @@ export const useFirestore = () => {
 export const usePatientFiles = (patientId: string) => {
   const getPatientFiles = async () => {
     try {
+      console.log('Fetching files for patient:', patientId);
       const filesRef = collection(db, 'files').withConverter(dentalFileConverter);
       const filesQuery = query(filesRef, where('patientId', '==', patientId));
       const querySnapshot = await getDocs(filesQuery);
