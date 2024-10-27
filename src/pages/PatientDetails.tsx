@@ -75,34 +75,20 @@ export function PatientDetails() {
 
   // Group files by category and group
   const filesByGroup = useMemo(() => {
-    const groups = {
+    const groups: Record<string, DentalFile[]> = {
       Before: [],
       After: [],
       Unsorted: []
     };
 
     uniqueFiles.forEach(file => {
-      const groupId = file.group?.id || 'unsorted';
-      const validGroup = groups.hasOwnProperty(groupId) ? groupId : 'Unsorted';
-      if (!groups[validGroup]) {
-        groups[validGroup] = [];
+      const groupId = file.group?.id || 'Unsorted';
+      if (!groups[groupId]) {
+        groups[groupId] = [];
       }
-      groups[validGroup].push(file);
+      groups[groupId].push(file);
     });
 
-    return groups;
-  }, [uniqueFiles]);
-
-  const groupedFiles = useMemo(() => {
-    const groups: Record<string, DentalFile[]> = {};
-    uniqueFiles.forEach(file => {
-      const key = `${file.type}_${file.format}`;
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(file);
-    });
-    console.log("Files grouped by type and format:", groups);
     return groups;
   }, [uniqueFiles]);
 
@@ -185,7 +171,7 @@ export function PatientDetails() {
                 <div className="flex items-center">
                   <Grid className="w-4 h-4 mr-2 text-gray-400" />
                   <span className="text-gray-900 dark:text-white font-medium">
-                    {groupId.charAt(0).toUpperCase() + groupId.slice(1)}
+                    {groupId}
                   </span>
                   <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
                     ({groupFiles.length})
