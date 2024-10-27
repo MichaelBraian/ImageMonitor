@@ -34,10 +34,16 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
+    console.log('Loading image from URL:', imageUrl);
     const image = new Image();
     image.crossOrigin = "anonymous";
-    image.src = imageUrl;
+    
     image.onload = () => {
+      console.log('Image loaded successfully:', {
+        width: image.width,
+        height: image.height
+      });
+      
       if (canvasRef.current) {
         const canvas = canvasRef.current;
         canvas.width = image.width;
@@ -46,6 +52,24 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         applyTransformations(image);
       }
       setIsLoading(false);
+    };
+
+    image.onerror = (error) => {
+      console.error('Error loading image:', error);
+      setIsLoading(false);
+      // Maybe show an error message to the user
+      alert('Failed to load image. Please try again.');
+      onClose();
+    };
+
+    // Add a timestamp to bypass cache
+    const urlWithTimestamp = `${imageUrl}?t=${new Date().getTime()}`;
+    image.src = urlWithTimestamp;
+
+    return () => {
+      // Cleanup
+      image.onload = null;
+      image.onerror = null;
     };
   }, [imageUrl]);
 
@@ -57,10 +81,24 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   }, [rotation, flipH, flipV, filters]);
 
   const applyTransformations = (image: HTMLImageElement) => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) {
+      console.error('Canvas ref is null');
+      return;
+    }
+    
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return;
+    }
+
+    console.log('Applying transformations:', {
+      rotation,
+      flipH,
+      flipV,
+      filters
+    });
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -132,11 +170,21 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
       {/* Editor Container */}
       <div className="flex flex-1 overflow-hidden">
         {/* Main Canvas Area */}
-        <div className="flex-1 p-4 flex items-center justify-center">
+        <div className="flex-1 p-4 flex items-center justify-center bg-gray-200 dark:bg-gray-800">
           {isLoading ? (
-            <Loader2 className="w-8 h-8 animate-spin" />
+            <div className="flex flex-col items-center">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <p className="mt-2">Loading image...</p>
+            </div>
+          ) : !originalImage ? (
+            <div className="text-red-500">
+              Failed to load image. Please try again.
+            </div>
           ) : (
-            <canvas ref={canvasRef} className="max-w-full max-h-full" />
+            <canvas 
+              ref={canvasRef} 
+              className="max-w-full max-h-full shadow-lg"
+            />
           )}
         </div>
 

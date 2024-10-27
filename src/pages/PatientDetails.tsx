@@ -55,6 +55,11 @@ export function PatientDetails() {
 
   const handleFileClick = (file: DentalFile) => {
     if (file.fileType === '2D') {
+      console.log('Opening editor with file:', {
+        id: file.id,
+        url: file.url,
+        type: file.type
+      });
       setEditingFile(file);
       setIsEditing(true);
     } else {
