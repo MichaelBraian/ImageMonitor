@@ -15,6 +15,7 @@ import { ImageUploadModal } from '../components/ImageUploadModal';
 import { EditPatientModal } from '../components/EditPatientModal';
 import { DentalFile, ImageGroup } from '../data/mockData';
 import { ThreeDThumbnail } from '../components/ThreeDThumbnail';
+import { Editor2D } from '../components/Editor2D';
 
 export function PatientDetails() {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ export function PatientDetails() {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [files, setFiles] = useState<DentalFile[]>([]);
+  const [showEditor, setShowEditor] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const patient = patientId ? getPatient(patientId) : null;
 
@@ -39,8 +42,15 @@ export function PatientDetails() {
   }, [fetchPatientFiles]);
 
   const handleFileClick = (file: DentalFile) => {
-    console.log('Navigating to editor with file ID:', file.id);
-    navigate(`/editor/${file.id}`);
+    if (file.fileType === '2D') {
+      console.log('Opening editor with image URL:', file.url);
+      setSelectedImage(file.url);
+      setShowEditor(true);
+    } else {
+      // Handle 3D files as before
+      console.log('Navigating to editor with file ID:', file.id);
+      navigate(`/editor/${file.id}`);
+    }
   };
 
   const handleDeletePatient = () => {
@@ -249,6 +259,18 @@ export function PatientDetails() {
         patient={patient}
         onUpdate={updatePatient}
       />
+
+      {showEditor && selectedImage && (
+        <Editor2D
+          imageUrl={selectedImage}
+          onSave={(editedImage: string) => {
+            // Here you'll handle saving the edited image back to Firebase
+            console.log('Saving edited image:', editedImage);
+            setShowEditor(false);
+          }}
+          onClose={() => setShowEditor(false)}
+        />
+      )}
     </div>
   );
 }
