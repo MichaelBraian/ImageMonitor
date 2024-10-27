@@ -39,14 +39,16 @@ export function PatientDetails() {
 
   const filesByGroup = useMemo(() => {
     console.log('Creating filesByGroup. Files:', JSON.stringify(files, null, 2));
-    return files.reduce<Record<string, DentalFile[]>>((acc, file) => {
-      const groupId = file.group;
+    const grouped = files.reduce<Record<string, DentalFile[]>>((acc, file) => {
+      const groupId = file.group || 'Unsorted';
       if (!acc[groupId]) {
         acc[groupId] = [];
       }
       acc[groupId].push(file);
       return acc;
     }, {});
+    console.log('Grouped files:', JSON.stringify(grouped, null, 2));
+    return grouped;
   }, [files]);
 
   console.log('Rendering PatientDetails. Patient:', JSON.stringify(patient, null, 2));
@@ -78,25 +80,29 @@ export function PatientDetails() {
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">{patient.name}'s Files</h2>
-      {Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
-        <div key={groupId} className="mb-6">
-          <h3 className="text-xl font-semibold mb-2">{groupId}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {groupFiles.map((file) => (
-              <div key={file.id} className="border rounded-lg overflow-hidden">
-                {renderFile(file)}
-                <div className="p-2">
-                  <p className="font-medium">{file.name}</p>
-                  <p className="text-sm text-gray-500">{file.fileType} - {new Date(file.date).toLocaleDateString()}</p>
-                  <Link to={`/editor/${file.id}`} className="text-blue-500 hover:underline">
-                    Edit
-                  </Link>
+      {Object.entries(filesByGroup).length === 0 ? (
+        <p>No files uploaded yet.</p>
+      ) : (
+        Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
+          <div key={groupId} className="mb-6">
+            <h3 className="text-xl font-semibold mb-2">{groupId}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {groupFiles.map((file) => (
+                <div key={file.id} className="border rounded-lg overflow-hidden">
+                  {renderFile(file)}
+                  <div className="p-2">
+                    <p className="font-medium">{file.name}</p>
+                    <p className="text-sm text-gray-500">{file.fileType} - {new Date(file.date).toLocaleDateString()}</p>
+                    <Link to={`/editor/${file.id}`} className="text-blue-500 hover:underline">
+                      Edit
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }

@@ -127,7 +127,8 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           fileType: file.fileType
         };
 
-        await addDoc(collection(db, 'files'), fileData);
+        const docRef = await addDoc(collection(db, 'files'), fileData);
+        console.log('File added to Firestore:', docRef.id, fileData);
         await addFile(fileData);
       }
 
