@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { ImageUploadModal } from '../components/ImageUploadModal';
 import { EditPatientModal } from '../components/EditPatientModal';
-import { DentalFile, ImageGroup } from '../data/mockData';
+import { DentalFile, ImageGroup } from '../types';
 import { ThreeDThumbnail } from '../components/ThreeDThumbnail';
 import { Editor2D } from '../components/Editor2D';
 import { Patient } from '../types';
@@ -124,7 +124,8 @@ export function PatientDetails() {
     };
 
     uniqueFiles.forEach(file => {
-      const groupId = file.group?.id || 'Unsorted';
+      // group is now a string, so use it directly
+      const groupId = file.group || 'Unsorted';
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
