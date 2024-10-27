@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { DentalFile, ImageCategory, ImageGroup } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { db, storage, auth } from '../firebase/config';
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject, uploadString } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject, uploadString, listAll } from 'firebase/storage';
 
 interface FileContextType {
   files: DentalFile[];
@@ -22,6 +22,8 @@ const FileContext = createContext<FileContextType | undefined>(undefined);
 
 export function FileProvider({ children }: { children: React.ReactNode }) {
   const [files, setFiles] = useState<DentalFile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -135,6 +137,49 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     return newUrl;
   };
 
+  const loadFiles = async (patientId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Clear existing files when loading new ones
+      setFiles([]);
+
+      const storageRef = ref(storage, `patients/${patientId}/images`);
+      
+      try {
+        const result = await listAll(storageRef);
+        
+        if (result.items.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        const filePromises = result.items.map(async (item) => {
+          try {
+            const url = await getDownloadURL(item);
+            return {
+              id: item.name,
+              url,
+              group: item.name.split('/')[0] || 'ungrouped',
+            };
+          } catch (err) {
+            console.error(`Error loading file ${item.name}:`, err);
+            return null;
+          }
+        });
+
+        const loadedFiles = (await Promise.all(filePromises)).filter((file): file is DentalFile => file !== null);
+        setFiles(loadedFiles);
+      } catch (err) {
+        console.error('Error listing files:', err);
+        setError('Failed to load images');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <FileContext.Provider value={{
       files,
@@ -147,6 +192,9 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
       updateFile,
       refreshPatientFiles,
       updateFileImage,
+      loadFiles,
+      loading,
+      error,
     }}>
       {children}
     </FileContext.Provider>
@@ -160,3 +208,11 @@ export function useFiles() {
   }
   return context;
 }
+
+export const useFileContext = () => {
+  const context = useContext(FileContext);
+  if (!context) {
+    throw new Error('useFileContext must be used within a FileProvider');
+  }
+  return context;
+};

@@ -117,18 +117,28 @@ export function PatientDetails() {
 
   // Group files by category and group
   const filesByGroup = useMemo(() => {
-    const groups: Record<ImageGroup, DentalFile[]> = {
-      'Before': [],
-      'After': [],
-      'Unsorted': []
+    // Create a type-safe groups object
+    const groups = {
+      'Before': [] as DentalFile[],
+      'After': [] as DentalFile[],
+      'Unsorted': [] as DentalFile[]
     };
 
-    if (uniqueFiles) {
-      uniqueFiles.forEach(file => {
-        const groupId: ImageGroup = file.group || 'Unsorted';
-        groups[groupId].push(file);
-      });
+    // Only process if uniqueFiles exists and has items
+    if (!uniqueFiles || uniqueFiles.length === 0) {
+      return groups;
     }
+
+    // Process each file
+    uniqueFiles.forEach(file => {
+      // Ensure group is one of our valid types
+      const validGroup = (file.group === 'Before' || file.group === 'After' || file.group === 'Unsorted') 
+        ? file.group 
+        : 'Unsorted';
+      
+      // Add file to appropriate group
+      groups[validGroup].push(file);
+    });
 
     return groups;
   }, [uniqueFiles]);
