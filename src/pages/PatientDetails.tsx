@@ -86,62 +86,49 @@ export function PatientDetails() {
     await fetchPatientFiles();
   };
 
-  if (!patient) {
-    return (
-      <div className="p-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Patient not found</h2>
-          <Link 
-            to="/patients" 
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Return to patients list
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Deduplicate files based on their ID
-  const uniqueFiles = useMemo(() => {
-    const uniqueMap = new Map<string, DentalFile>();
-    files.forEach(file => {
-      if (!uniqueMap.has(file.id)) {
-        uniqueMap.set(file.id, file);
-      }
-    });
-    return Array.from(uniqueMap.values());
-  }, [files]);
-
-  console.log("Unique files after deduplication:", uniqueFiles);
-
-  // Group files by category and group
+  // Modified filesByGroup implementation
   const filesByGroup = useMemo(() => {
-    // Create a type-safe groups object
+    // Initialize with empty arrays
     const groups = {
       'Before': [] as DentalFile[],
       'After': [] as DentalFile[],
       'Unsorted': [] as DentalFile[]
     };
 
-    // Only process if uniqueFiles exists and has items
-    if (!uniqueFiles || uniqueFiles.length === 0) {
+    // If there are no files, return the empty groups
+    if (!files || files.length === 0) {
       return groups;
     }
 
     // Process each file
-    uniqueFiles.forEach(file => {
+    files.forEach(file => {
+      if (!file) return; // Skip if file is undefined
+      
       // Ensure group is one of our valid types
-      const validGroup = (file.group === 'Before' || file.group === 'After' || file.group === 'Unsorted') 
+      const validGroup = (file.group === 'Before' || file.group === 'After') 
         ? file.group 
         : 'Unsorted';
       
-      // Add file to appropriate group
+      if (!groups[validGroup]) {
+        groups[validGroup] = [];
+      }
+      
       groups[validGroup].push(file);
     });
 
     return groups;
-  }, [uniqueFiles]);
+  }, [files]);
+
+  // Early return for loading state
+  if (!patient) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Loading...</h2>
+        </div>
+      </div>
+    );
+  }
 
   function renderThumbnail(file: DentalFile) {
     if (file.fileType === '3D') {
@@ -204,7 +191,7 @@ export function PatientDetails() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-            Files ({uniqueFiles.length})
+            Files ({files?.length || 0})
           </h2>
           <button 
             onClick={() => setIsUploadModalOpen(true)}
@@ -216,19 +203,19 @@ export function PatientDetails() {
         </div>
 
         {Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
-          groupFiles.length > 0 && (
-            <div key={groupId} className="mb-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center">
-                  <Grid className="w-4 h-4 mr-2 text-gray-400" />
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    {groupId}
-                  </span>
-                  <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                    ({groupFiles.length})
-                  </span>
-                </div>
+          <div key={groupId} className="mb-4">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center">
+                <Grid className="w-4 h-4 mr-2 text-gray-400" />
+                <span className="text-gray-900 dark:text-white font-medium">
+                  {groupId}
+                </span>
+                <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                  ({groupFiles.length})
+                </span>
               </div>
+            </div>
+            {groupFiles.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
                 {groupFiles.map((file) => (
                   <div
@@ -241,11 +228,13 @@ export function PatientDetails() {
                         src={file.url}
                         alt={`${file.type} ${file.group}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/placeholder-image.png'; // Add a placeholder image
+                        }}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        {renderThumbnail(file)}
-                      </div>
+                      renderThumbnail(file)
                     )}
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-2">
                       <div className="flex items-center">
@@ -262,11 +251,11 @@ export function PatientDetails() {
                   </div>
                 ))}
               </div>
-            </div>
-          )
+            )}
+          </div>
         ))}
 
-        {uniqueFiles.length === 0 && (
+        {(!files || files.length === 0) && (
           <div className="text-center py-12">
             <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-500 dark:text-gray-400">No files available</p>
