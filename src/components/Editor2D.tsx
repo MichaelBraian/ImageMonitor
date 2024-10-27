@@ -34,94 +34,87 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const [isCropping, setIsCropping] = useState(false);
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
 
+  // Add a ref initialized state
+  const [isCanvasReady, setIsCanvasReady] = useState(false);
+
+  // Add useEffect to check when canvas is ready
   useEffect(() => {
-    const loadImage = async () => {
-      console.log('Starting to load image from URL:', imageUrl);
-      setIsLoading(true);
+    if (canvasRef.current) {
+      setIsCanvasReady(true);
+    }
+  }, []);
+
+  // Separate image loading logic
+  const loadImage = async (url: string) => {
+    try {
+      const storage = getStorage();
+      const imageRef = ref(storage, url);
+      const freshUrl = await getDownloadURL(imageRef);
       
+      console.log('Got fresh download URL:', freshUrl);
+      
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = freshUrl;
+      });
+    } catch (error) {
+      console.error('Error loading image:', error);
+      throw error;
+    }
+  };
+
+  // Main effect for handling image loading and canvas setup
+  useEffect(() => {
+    const initializeEditor = async () => {
+      if (!isCanvasReady) {
+        console.log('Waiting for canvas to be ready...');
+        return;
+      }
+
+      console.log('Canvas is ready, starting initialization...');
+      setIsLoading(true);
+
       try {
-        // Create canvas first
-        if (!canvasRef.current) {
-          console.error('Canvas ref not ready');
-          return;
-        }
-
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          console.error('Could not get canvas context');
-          return;
+        const ctx = canvas?.getContext('2d');
+        
+        if (!canvas || !ctx) {
+          throw new Error('Canvas context not available');
         }
 
-        // Get a fresh download URL from Firebase
-        const storage = getStorage();
-        const imageRef = ref(storage, imageUrl);
-        const freshUrl = await getDownloadURL(imageRef);
-        
-        console.log('Got fresh download URL:', freshUrl);
-        
-        // Create and load image
-        const image = new Image();
-        image.crossOrigin = "anonymous";
-        
-        await new Promise((resolve, reject) => {
-          image.onload = () => {
-            console.log('Image loaded with dimensions:', {
-              width: image.width,
-              height: image.height,
-              naturalWidth: image.naturalWidth,
-              naturalHeight: image.naturalHeight
-            });
-
-            // Set canvas dimensions
-            canvas.width = image.naturalWidth || image.width;
-            canvas.height = image.naturalHeight || image.height;
-
-            // Draw initial image
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Add this check and logging
-            try {
-              ctx.drawImage(image, 0, 0);
-              console.log('Successfully drew image to canvas');
-              
-              // Verify the canvas has content
-              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              console.log('Canvas image data:', {
-                width: imageData.width,
-                height: imageData.height,
-                hasData: imageData.data.some(x => x !== 0)
-              });
-            } catch (drawError) {
-              console.error('Error drawing to canvas:', drawError);
-              reject(drawError);
-              return;
-            }
-            
-            setOriginalImage(image);
-            resolve(image);
-          };
-
-          image.onerror = (error) => {
-            console.error('Image load error:', error);
-            reject(new Error('Failed to load image'));
-          };
-
-          image.src = freshUrl;
+        const image = await loadImage(imageUrl);
+        console.log('Image loaded with dimensions:', {
+          width: image.width,
+          height: image.height,
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight
         });
 
-        console.log('Image loaded and drawn to canvas');
-        setIsLoading(false);
+        // Set canvas dimensions
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
 
+        // Draw initial image
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0);
+        
+        setOriginalImage(image);
+        setIsLoading(false);
+        
+        console.log('Editor initialized successfully');
       } catch (error) {
-        console.error('Error in loadImage:', error);
+        console.error('Error initializing editor:', error);
         setIsLoading(false);
         setOriginalImage(null);
       }
     };
 
-    loadImage();
-  }, [imageUrl]);
+    initializeEditor();
+  }, [imageUrl, isCanvasReady]);
 
   // Add effect to reapply transformations when any transform state changes
   useEffect(() => {
@@ -222,7 +215,12 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
       <div className="flex flex-1 overflow-hidden">
         {/* Main Canvas Area */}
         <div className="flex-1 p-4 flex items-center justify-center bg-gray-200 dark:bg-gray-800">
-          {isLoading ? (
+          {!isCanvasReady ? (
+            <div className="flex flex-col items-center">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <p className="mt-2">Initializing editor...</p>
+            </div>
+          ) : isLoading ? (
             <div className="flex flex-col items-center">
               <Loader2 className="w-8 h-8 animate-spin" />
               <p className="mt-2">Loading image...</p>
