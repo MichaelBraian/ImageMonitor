@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
 import { usePatientFiles } from '../hooks/useFirestore';
 import { DentalFile, Patient } from '../types';
@@ -13,6 +13,7 @@ export function PatientDetails() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,6 +69,12 @@ export function PatientDetails() {
         />
       );
     }
+  };
+
+  const handleFileClick = (file: DentalFile) => {
+    console.log('Clicked file:', file); // Added logging
+    console.log('Navigating to editor with file ID:', file.id);
+    navigate(`/editor/${file.id}`);
   };
 
   console.log('Rendering PatientDetails. Patient:', JSON.stringify(patient, null, 2));

@@ -23,9 +23,15 @@ export function Editor2D({ file }: Editor2DProps) {
     return <div>Loading image...</div>;
   }
 
+  const tools = [
+    // Add your tools here, for example:
+    // { icon: CropIcon, label: 'Crop', onClick: handleCrop },
+    // { icon: RotateIcon, label: 'Rotate', onClick: handleRotate },
+  ];
+
   return (
     <div className="h-full flex flex-col">
-      <ImageControls />
+      <ImageControls tools={tools} zoom={zoom} rotation={rotation} />
       <div className="flex-1 relative overflow-hidden">
         <img
           src={file.url}
