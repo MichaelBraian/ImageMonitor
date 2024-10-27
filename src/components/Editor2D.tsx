@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactImagePickerEditor from 'react-image-picker-editor';
+import ReactImagePickerEditor, { ImagePickerConf } from 'react-image-picker-editor';
 import 'react-image-picker-editor/dist/index.css';
 
 interface Editor2DProps {
@@ -9,20 +9,17 @@ interface Editor2DProps {
 }
 
 export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose }) => {
-  const config = {
+  const config: ImagePickerConf = {
     borderRadius: '8px',
     language: 'en',
     width: '800px',
     height: '400px',
     objectFit: 'contain',
     compressInitial: null,
-    defaultImage: imageUrl,
-    // Add these properties to skip the upload screen
     hideDeleteBtn: true,
     hideDownloadBtn: false,
     hideEditBtn: false,
-    hideAddBtn: true, // This hides the upload/add image button
-    hideUploadBtn: true // This also helps hide the upload functionality
+    hideAddBtn: true
   };
 
   return (
@@ -34,8 +31,8 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         
         <ReactImagePickerEditor
           config={config}
-          imageSrcProps={imageUrl} // Use imageSrcProps instead of defaultImage
-          onSave={onSave}
+          imageSrcProp={imageUrl}
+          imageChanged={(newDataUri: string) => { onSave(newDataUri) }}
         />
         
         <div className="mt-4 flex justify-end space-x-2">
