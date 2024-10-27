@@ -69,7 +69,15 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const docRef = doc(db, 'patients', id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Patient;
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        name: data.name,
+        lastImageDate: data.lastImageDate,
+        imageCount: data.imageCount,
+        userId: data.userId,
+        createdAt: data.createdAt
+      };
     }
     return null;
   };

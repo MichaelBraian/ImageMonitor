@@ -20,8 +20,10 @@ export function PatientDetails() {
         setIsLoading(true);
         if (patientId) {
           const fetchedPatient = await getPatient(patientId);
+          console.log('Fetched patient:', fetchedPatient);
           setPatient(fetchedPatient);
           const fetchedFiles = await getPatientFiles();
+          console.log('Fetched files:', fetchedFiles);
           setFiles(fetchedFiles);
         }
       } catch (err) {
@@ -36,6 +38,7 @@ export function PatientDetails() {
   }, [patientId, getPatient, getPatientFiles]);
 
   const filesByGroup = useMemo(() => {
+    console.log('Creating filesByGroup. Files:', files);
     return files.reduce<Record<string, DentalFile[]>>((acc, file) => {
       const groupId = file.group;
       if (!acc[groupId]) {
@@ -46,7 +49,11 @@ export function PatientDetails() {
     }, {});
   }, [files]);
 
+  console.log('Rendering PatientDetails. Patient:', patient);
+  console.log('FilesByGroup:', filesByGroup);
+
   const renderFile = (file: DentalFile) => {
+    console.log('Rendering file:', file);
     if (file.fileType === '3D') {
       return (
         <div className="w-full h-40 flex items-center justify-center">
@@ -70,7 +77,7 @@ export function PatientDetails() {
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">{patient?.name}'s Files</h2>
+      <h2 className="text-2xl font-bold mb-4">{patient.name}'s Files</h2>
       {Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
         <div key={groupId} className="mb-6">
           <h3 className="text-xl font-semibold mb-2">{groupId}</h3>
