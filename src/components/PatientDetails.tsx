@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { ImageUploadModal } from './ImageUploadModal';
 import { useParams } from 'react-router-dom';
@@ -29,10 +29,11 @@ export function PatientDetails() {
           setPatient(fetchedPatient);
           console.log('Fetched patient:', fetchedPatient);
 
-          const patientDoc = await getDoc(doc(db, 'patients', patientId));
-          if (patientDoc.exists()) {
-            setFiles(patientDoc.data().files || []);
-          }
+          // Fetch files for this patient
+          const filesQuery = query(collection(db, 'files'), where('patientId', '==', patientId));
+          const filesSnapshot = await getDocs(filesQuery);
+          const fetchedFiles = filesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
+          setFiles(fetchedFiles);
         } else {
           setError('Patient not found');
         }
@@ -70,11 +71,11 @@ export function PatientDetails() {
           ))}
         </ul>
       )}
-      {isUploadModalOpen && patientId && (
+      {isUploadModalOpen && (
         <ImageUploadModal
           isOpen={isUploadModalOpen}
           onClose={() => setIsUploadModalOpen(false)}
-          patientId={patientId}
+          patientId={patientId || ''}
         />
       )}
     </div>
