@@ -6,7 +6,7 @@ import { FileProvider } from './context/FileContext';
 import { Layout } from './components/Layout';
 import { PatientList } from './components/PatientList';
 import { PatientDetails } from './pages/PatientDetails';
-import { Editor } from './pages/Editor'; // Make sure this import is correct
+import { Editor } from './pages/Editor';
 
 const App = () => {
   return (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useFiles } from '../context/FileContext';
 import { DentalFile } from '../types'; // Make sure to import DentalFile type
 
@@ -9,16 +9,20 @@ export function Editor() {
   const [file, setFile] = useState<DentalFile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFile = async () => {
       if (fileId) {
         try {
           setLoading(true);
+          console.log('Fetching file with ID:', fileId);
           const fetchedFile = await getFile(fileId);
           if (fetchedFile) {
+            console.log('Fetched file:', fetchedFile);
             setFile(fetchedFile);
           } else {
+            console.error('File not found');
             setError('File not found');
           }
         } catch (err) {
@@ -58,7 +62,12 @@ export function Editor() {
         <p>Format: {file.format}</p>
         <p>Uploaded: {new Date(file.createdAt).toLocaleString()}</p>
       </div>
-      {/* Add your editor controls and functionality here */}
+      <button
+        onClick={() => navigate(`/patients/${file.patientId}`)}
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Back to Patient
+      </button>
     </div>
   );
 }

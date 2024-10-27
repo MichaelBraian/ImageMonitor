@@ -39,6 +39,7 @@ export function PatientDetails() {
   }, [fetchPatientFiles]);
 
   const handleFileClick = (file: DentalFile) => {
+    console.log('Navigating to editor with file ID:', file.id);
     navigate(`/editor/${file.id}`);
   };
 
