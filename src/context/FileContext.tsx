@@ -38,9 +38,22 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getFile = useCallback(async (fileId: string) => {
-    const docRef = doc(db, 'files', fileId);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as DentalFile : undefined;
+    try {
+      console.log('Fetching file from Firestore with ID:', fileId);
+      const docRef = doc(db, 'files', fileId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const fileData = { id: docSnap.id, ...docSnap.data() } as DentalFile;
+        console.log('File data from Firestore:', fileData);
+        return fileData;
+      } else {
+        console.log('No such document!');
+        return undefined;
+      }
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      throw error;
+    }
   }, []);
 
   const addFile = useCallback(async (file: DentalFile) => {

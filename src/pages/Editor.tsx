@@ -53,7 +53,15 @@ export function Editor() {
       <h1 className="text-2xl font-bold mb-4">Editor</h1>
       <p className="mb-4">Editing file: {file.name}</p>
       {file.fileType === '2D' ? (
-        <img src={file.url} alt={file.name} className="max-w-full h-auto" />
+        <img 
+          src={file.url} 
+          alt={file.name} 
+          className="max-w-full h-auto"
+          onError={(e) => {
+            console.error('Error loading image:', e);
+            e.currentTarget.src = '/placeholder-dental.jpg'; // Fallback image
+          }}
+        />
       ) : (
         <p>3D file viewer not implemented yet</p>
       )}
