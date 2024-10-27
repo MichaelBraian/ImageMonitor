@@ -6,7 +6,7 @@ import { FileType, DentalFile, ImageCategory, ImageGroup, PreviewFile, Patient }
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, db, auth } from '../firebase/config';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
 
@@ -131,8 +131,14 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
           await addFile(fileData);
         }
 
-        await updatePatient(patientId, {
-          imageCount: (prev) => prev + selectedFiles.length,
+        // First, get the current patient data
+        const patientDoc = doc(db, 'patients', patientId);
+        const patientSnapshot = await getDoc(patientDoc);
+        const currentImageCount = patientSnapshot.data()?.imageCount || 0;
+
+        // Then update with the new count
+        await updateDoc(patientDoc, {
+          imageCount: currentImageCount + selectedFiles.length,
           lastImageDate: new Date().toISOString()
         });
 
