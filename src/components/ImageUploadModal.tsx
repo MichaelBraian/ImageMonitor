@@ -38,6 +38,11 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
 
   useEffect(() => {
     console.log('ImageUploadModal rendered with patientId:', patientId);
+    if (!patientId) {
+      setError('Patient ID is missing. Please try again or contact support.');
+    } else {
+      setError(null);
+    }
   }, [patientId]);
 
   const getFileFormat = (file: File): '2D' | 'PLY' | 'STL' => {

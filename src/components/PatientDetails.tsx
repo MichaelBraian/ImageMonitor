@@ -4,16 +4,15 @@ import { db } from '../firebase/config';
 import { ImageUploadModal } from './ImageUploadModal';
 import { useParams } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
-import { Patient, DentalFile } from '../types';
 
 export function PatientDetails() {
   const { patientId } = useParams<{ patientId: string }>();
-  const [files, setFiles] = useState<DentalFile[]>([]);
+  const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const { getPatient } = usePatients();
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const [patient, setPatient] = useState(null);
 
   useEffect(() => {
     const fetchPatientAndFiles = async () => {
@@ -70,7 +69,7 @@ export function PatientDetails() {
           ))}
         </ul>
       )}
-      {isUploadModalOpen && patientId && (
+      {isUploadModalOpen && (
         <ImageUploadModal
           isOpen={isUploadModalOpen}
           onClose={() => setIsUploadModalOpen(false)}
