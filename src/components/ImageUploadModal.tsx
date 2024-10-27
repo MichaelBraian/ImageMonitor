@@ -131,7 +131,7 @@ export function ImageUploadModal({ isOpen, onClose, patientId }: ImageUploadModa
       }
 
       await updatePatient(patientId, {
-        imageCount: selectedFiles.length,
+        imageCount: (prev) => prev + selectedFiles.length,
         lastImageDate: new Date().toISOString()
       });
 
