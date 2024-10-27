@@ -12,7 +12,8 @@ export interface Patient {
   createdAt: string;
 }
 
-export type ImageGroup = 'Before' | 'After' | 'Unsorted';
+export type ImageGroup = string;
+export type ImageCategory = string;
 
 export interface DentalFile {
   id: string;

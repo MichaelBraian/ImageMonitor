@@ -10,10 +10,11 @@ interface FileContextType {
   getPatientFiles: (patientId: string) => Promise<DentalFile[]>;
   getFile: (fileId: string) => Promise<DentalFile | undefined>;
   addFile: (file: DentalFile) => Promise<void>;
-  updateFileGroup: (fileId: string, group: ImageGroup) => Promise<void>;
-  updateFileCategory: (fileId: string, category: ImageCategory) => Promise<void>;
+  updateFileGroup: (fileId: string, group: string) => Promise<void>;
+  updateFileCategory: (fileId: string, category: string) => Promise<void>;
   deleteFile: (fileId: string) => Promise<void>;
   updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
+  refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -47,13 +48,13 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     setFiles(prev => [...prev, { ...file, id: docRef.id }]);
   }, []);
 
-  const updateFileGroup = useCallback(async (fileId: string, group: ImageGroup) => {
+  const updateFileGroup = useCallback(async (fileId: string, group: string) => {
     const docRef = doc(db, 'files', fileId);
     await updateDoc(docRef, { group });
     setFiles(prev => prev.map(f => f.id === fileId ? { ...f, group } : f));
   }, []);
 
-  const updateFileCategory = useCallback(async (fileId: string, category: ImageCategory) => {
+  const updateFileCategory = useCallback(async (fileId: string, category: string) => {
     const docRef = doc(db, 'files', fileId);
     await updateDoc(docRef, { type: category });
     setFiles(prev => prev.map(f => f.id === fileId ? { ...f, type: category } : f));
@@ -79,11 +80,11 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     try {
       const q = query(collection(db, 'files'), where('patientId', '==', patientId));
       const querySnapshot = await getDocs(q);
-      const fetchedFiles: DentalFile[] = [];
-      querySnapshot.forEach((doc) => {
-        fetchedFiles.push({ id: doc.id, ...doc.data() } as DentalFile);
+      const fetchedFiles: DentalFile[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
+      setFiles(prevFiles => {
+        const updatedFiles = prevFiles.filter(f => f.patientId !== patientId).concat(fetchedFiles);
+        return updatedFiles;
       });
-      setFiles(fetchedFiles);
       return fetchedFiles;
     } catch (error) {
       console.error('Error refreshing patient files:', error);
@@ -109,7 +110,6 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
       deleteFile,
       updateFile,
       refreshPatientFiles,
-      uploadFile,
     }}>
       {children}
     </FileContext.Provider>

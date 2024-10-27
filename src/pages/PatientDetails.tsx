@@ -29,10 +29,10 @@ export function PatientDetails() {
 
   const fetchPatientFiles = useCallback(async () => {
     if (patientId) {
-      const fetchedFiles = await getPatientFiles(patientId);
+      const fetchedFiles = await refreshPatientFiles(patientId);
       setFiles(fetchedFiles);
     }
-  }, [patientId, getPatientFiles]);
+  }, [patientId, refreshPatientFiles]);
 
   useEffect(() => {
     fetchPatientFiles();
