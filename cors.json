@@ -1,0 +1,6 @@
+{
+  "origin": ["https://dentalimage.netlify.app"],
+  "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+  "maxAgeSeconds": 3600,
+  "responseHeader": ["Content-Type"]
+}

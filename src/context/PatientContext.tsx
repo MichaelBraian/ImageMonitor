@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Patient } from '../types';
@@ -11,6 +11,7 @@ interface PatientContextType {
   updatePatient: (id: string, patient: Partial<Patient>) => Promise<void>;
   getPatient: (id: string) => Promise<Patient | null>;
   searchPatients: (query: string) => Patient[];
+  deletePatient: (id: string) => Promise<void>;
 }
 
 const PatientContext = createContext<PatientContextType | undefined>(undefined);
@@ -89,6 +90,11 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
   };
 
+  const deletePatient = async (id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'patients', id));
+    setPatients(prev => prev.filter(p => p.id !== id));
+  };
+
   return (
     <PatientContext.Provider value={{
       patients,
@@ -97,6 +103,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updatePatient,
       getPatient,
       searchPatients,
+      deletePatient,
     }}>
       {children}
     </PatientContext.Provider>

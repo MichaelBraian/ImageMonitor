@@ -10,23 +10,24 @@ export interface Patient {
   imageCount: number;
   userId: string;
   createdAt: string;
+  profileImage?: string | null;
 }
 
-export type ImageGroup = string;
-export type ImageCategory = string;
+export type ImageGroup = 'Before' | 'After' | 'Unsorted';
+export type ImageCategory = 'X-Ray' | 'Intraoral' | 'Extraoral' | 'Unsorted';
 
 export interface DentalFile {
   id: string;
   url: string;
   name: string;
-  type: string;
+  type: ImageCategory;
   format: string;
   userId: string;
   patientId: string;
   createdAt: string;
   group: ImageGroup;
   date: string;
-  fileType: '2D' | '3D';
+  fileType: FileType;
 }
 
 export type FileType = '2D' | '3D';

@@ -16,6 +16,7 @@ import { EditPatientModal } from '../components/EditPatientModal';
 import { DentalFile, ImageGroup } from '../data/mockData';
 import { ThreeDThumbnail } from '../components/ThreeDThumbnail';
 import { Editor2D } from '../components/Editor2D';
+import { Patient } from '../types';
 
 export function PatientDetails() {
   const navigate = useNavigate();
@@ -27,8 +28,7 @@ export function PatientDetails() {
   const [files, setFiles] = useState<DentalFile[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  const patient = patientId ? getPatient(patientId) : null;
+  const [patient, setPatient] = useState<Patient | null>(null);
 
   const fetchPatientFiles = useCallback(async () => {
     if (patientId) {
@@ -41,13 +41,35 @@ export function PatientDetails() {
     fetchPatientFiles();
   }, [fetchPatientFiles]);
 
-  const handleFileClick = (file: DentalFile) => {
+  useEffect(() => {
+    const fetchPatient = async () => {
+      if (patientId) {
+        const patientData = await getPatient(patientId);
+        setPatient(patientData);
+      }
+    };
+    fetchPatient();
+  }, [patientId, getPatient]);
+
+  const handleFileClick = async (file: DentalFile) => {
     if (file.fileType === '2D') {
-      console.log('Opening editor with image URL:', file.url);
-      setSelectedImage(file.url);
-      setShowEditor(true);
+      try {
+        // Convert URL to base64
+        const response = await fetch(file.url);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setSelectedImage(base64data);
+          setShowEditor(true);
+        };
+        
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error('Error loading image:', error);
+      }
     } else {
-      // Handle 3D files as before
       console.log('Navigating to editor with file ID:', file.id);
       navigate(`/editor/${file.id}`);
     }
