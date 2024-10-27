@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatients } from '../context/PatientContext';
 import { useFiles } from '../context/FileContext';
@@ -27,12 +27,16 @@ export function PatientDetails() {
 
   const patient = patientId ? getPatient(patientId) : null;
 
-  useEffect(() => {
+  const fetchPatientFiles = useCallback(async () => {
     if (patientId) {
-      getPatientFiles(patientId).then(setFiles);
-      refreshPatientFiles(patientId);
+      const fetchedFiles = await getPatientFiles(patientId);
+      setFiles(fetchedFiles);
     }
-  }, [patientId, getPatientFiles, refreshPatientFiles]);
+  }, [patientId, getPatientFiles]);
+
+  useEffect(() => {
+    fetchPatientFiles();
+  }, [fetchPatientFiles]);
 
   const handleFileClick = (file: DentalFile) => {
     navigate(`/editor/${file.id}`);
@@ -46,10 +50,7 @@ export function PatientDetails() {
   };
 
   const handleFileUpload = async () => {
-    if (patientId) {
-      const updatedFiles = await getPatientFiles(patientId);
-      setFiles(updatedFiles);
-    }
+    await fetchPatientFiles();
   };
 
   if (!patient) {

@@ -107,11 +107,11 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     setError(null);
 
     try {
+      const uploadedFiles: DentalFile[] = [];
       for (const file of selectedFiles) {
         const fileId = uuidv4();
         const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
         
-        // Ensure file.file is of type File
         if (!(file.file instanceof File)) {
           throw new Error('Invalid file type');
         }
@@ -123,7 +123,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           id: fileId,
           url: downloadURL,
           name: file.file.name,
-          type: 'Unsorted', // Change this from an object to a string
+          type: 'Unsorted',
           format: file.format,
           userId: user.uid,
           patientId,
@@ -135,7 +135,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
         const docRef = await addDoc(collection(db, 'files'), fileData);
         console.log('File added to Firestore:', docRef.id, fileData);
-        await addFile(fileData);
+        uploadedFiles.push(fileData);
       }
 
       // Update patient image count
@@ -153,6 +153,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
       }
 
       setSelectedFiles([]);
+      onUploadComplete();
       onClose();
     } catch (err) {
       console.error("Error in handleUpload:", err);
