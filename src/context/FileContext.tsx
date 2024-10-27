@@ -10,8 +10,8 @@ interface FileContextType {
   getPatientFiles: (patientId: string) => Promise<DentalFile[]>;
   getFile: (fileId: string) => Promise<DentalFile | undefined>;
   addFile: (file: Omit<DentalFile, 'id'>) => Promise<DentalFile>;
-  updateFileGroup: (fileId: string, group: string) => Promise<void>;
-  updateFileCategory: (fileId: string, category: string) => Promise<void>;
+  updateFileGroup: (fileId: string, group: ImageGroup) => Promise<void>;
+  updateFileCategory: (fileId: string, category: ImageCategory) => Promise<void>;
   deleteFile: (fileId: string) => Promise<void>;
   updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
   refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
@@ -64,13 +64,13 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     return newFile;
   }, []);
 
-  const updateFileGroup = useCallback(async (fileId: string, group: string) => {
+  const updateFileGroup = useCallback(async (fileId: string, group: ImageGroup) => {
     const docRef = doc(db, 'files', fileId);
     await updateDoc(docRef, { group });
     setFiles(prev => prev.map(f => f.id === fileId ? { ...f, group } : f));
   }, []);
 
-  const updateFileCategory = useCallback(async (fileId: string, category: string) => {
+  const updateFileCategory = useCallback(async (fileId: string, category: ImageCategory) => {
     const docRef = doc(db, 'files', fileId);
     await updateDoc(docRef, { type: category });
     setFiles(prev => prev.map(f => f.id === fileId ? { ...f, type: category } : f));
