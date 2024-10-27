@@ -22,13 +22,14 @@ export function PatientDetails() {
   const navigate = useNavigate();
   const { patientId } = useParams();
   const { getPatient, updatePatient, deletePatient } = usePatients();
-  const { getPatientFiles, refreshPatientFiles } = useFiles();
+  const { getPatientFiles, refreshPatientFiles, updateFileImage } = useFiles();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [files, setFiles] = useState<DentalFile[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [currentFileId, setCurrentFileId] = useState<string | null>(null);
 
   const fetchPatientFiles = useCallback(async () => {
     if (patientId) {
@@ -54,7 +55,7 @@ export function PatientDetails() {
   const handleFileClick = async (file: DentalFile) => {
     if (file.fileType === '2D') {
       try {
-        // Convert URL to base64
+        setCurrentFileId(file.id); // Store the current file ID
         const response = await fetch(file.url);
         const blob = await response.blob();
         const reader = new FileReader();
@@ -70,7 +71,6 @@ export function PatientDetails() {
         console.error('Error loading image:', error);
       }
     } else {
-      console.log('Navigating to editor with file ID:', file.id);
       navigate(`/editor/${file.id}`);
     }
   };
@@ -117,20 +117,29 @@ export function PatientDetails() {
 
   // Group files by category and group
   const filesByGroup = useMemo(() => {
-    const groups: Record<string, DentalFile[]> = {
-      Before: [],
-      After: [],
-      Unsorted: []
+    // Initialize with default groups
+    const groups: Record<ImageGroup, DentalFile[]> = {
+      'Before': [],
+      'After': [],
+      'Unsorted': []
     };
 
-    uniqueFiles.forEach(file => {
-      // group is now a string, so use it directly
-      const groupId = file.group || 'Unsorted';
-      if (!groups[groupId]) {
-        groups[groupId] = [];
-      }
-      groups[groupId].push(file);
-    });
+    // Only process files if they exist
+    if (uniqueFiles && uniqueFiles.length > 0) {
+      uniqueFiles.forEach(file => {
+        // Ensure group is one of the valid types, default to 'Unsorted'
+        const groupId = (file.group && ['Before', 'After', 'Unsorted'].includes(file.group)) 
+          ? file.group 
+          : 'Unsorted';
+        
+        // Initialize array if needed
+        if (!groups[groupId]) {
+          groups[groupId] = [];
+        }
+        
+        groups[groupId].push(file);
+      });
+    }
 
     return groups;
   }, [uniqueFiles]);
@@ -283,13 +292,17 @@ export function PatientDetails() {
         onUpdate={updatePatient}
       />
 
-      {showEditor && selectedImage && (
+      {showEditor && selectedImage && currentFileId && (
         <Editor2D
           imageUrl={selectedImage}
-          onSave={(editedImage: string) => {
-            // Here you'll handle saving the edited image back to Firebase
-            console.log('Saving edited image:', editedImage);
-            setShowEditor(false);
+          onSave={async (editedImage: string) => {
+            try {
+              await updateFileImage(currentFileId, editedImage);
+              await fetchPatientFiles(); // Refresh the files list
+              setShowEditor(false);
+            } catch (error) {
+              console.error('Error saving edited image:', error);
+            }
           }}
           onClose={() => setShowEditor(false)}
         />

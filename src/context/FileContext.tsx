@@ -3,7 +3,7 @@ import { DentalFile, ImageCategory, ImageGroup } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { db, storage, auth } from '../firebase/config';
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject, uploadString } from 'firebase/storage';
 
 interface FileContextType {
   files: DentalFile[];
@@ -15,6 +15,7 @@ interface FileContextType {
   deleteFile: (fileId: string) => Promise<void>;
   updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
   refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
+  updateFileImage: (fileId: string, base64Image: string) => Promise<string>;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -114,6 +115,26 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     await refreshPatientFiles(patientId);
   };
 
+  const updateFileImage = async (fileId: string, base64Image: string): Promise<string> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
+
+    // Upload the new image
+    const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
+    await uploadString(storageRef, base64Image, 'data_url');
+    
+    // Get the new URL
+    const newUrl = await getDownloadURL(storageRef);
+    
+    // Update Firestore document
+    await updateDoc(doc(db, 'files', fileId), {
+      url: newUrl,
+      updatedAt: new Date().toISOString()
+    });
+
+    return newUrl;
+  };
+
   return (
     <FileContext.Provider value={{
       files,
@@ -125,6 +146,7 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
       deleteFile,
       updateFile,
       refreshPatientFiles,
+      updateFileImage,
     }}>
       {children}
     </FileContext.Provider>
