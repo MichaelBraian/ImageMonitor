@@ -16,8 +16,13 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     height: '400px',
     objectFit: 'contain',
     compressInitial: null,
-    // Set initial image to force the editor to show the image immediately
-    defaultImage: imageUrl
+    defaultImage: imageUrl,
+    // Add these properties to skip the upload screen
+    hideDeleteBtn: true,
+    hideDownloadBtn: false,
+    hideEditBtn: false,
+    hideAddBtn: true, // This hides the upload/add image button
+    hideUploadBtn: true // This also helps hide the upload functionality
   };
 
   return (
@@ -29,8 +34,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         
         <ReactImagePickerEditor
           config={config}
-          // Use defaultImage instead of imageSrcProps
-          defaultImage={imageUrl}
+          imageSrcProps={imageUrl} // Use imageSrcProps instead of defaultImage
           onSave={onSave}
         />
         
