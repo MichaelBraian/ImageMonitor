@@ -80,30 +80,36 @@ export function PatientDetails() {
   console.log('Rendering PatientDetails. Patient:', JSON.stringify(patient, null, 2));
   console.log('FilesByGroup:', JSON.stringify(filesByGroup, null, 2));
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!patient) return <div>Patient not found</div>;
+  if (isLoading) return <div className="text-gray-800 dark:text-gray-200">Loading...</div>;
+  if (error) return <div className="text-red-600 dark:text-red-400">Error: {error}</div>;
+  if (!patient) return <div className="text-gray-800 dark:text-gray-200">Patient not found</div>;
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">{patient.name}'s Files</h2>
+    <div className="p-4 bg-white dark:bg-gray-900">
+      <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+        {patient.name}'s Files
+      </h2>
       {Object.keys(filesByGroup).length === 0 ? (
-        <p>No files uploaded yet.</p>
+        <p className="text-gray-600 dark:text-gray-400">No files uploaded yet.</p>
       ) : (
         Object.entries(filesByGroup).map(([groupId, groupFiles]) => (
           <div key={groupId} className="mb-6">
-            <h3 className="text-xl font-semibold mb-2">{groupId}</h3>
+            <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">
+              {groupId}
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {groupFiles.map((file) => (
                 <div 
                   key={file.id} 
-                  className="border rounded-lg overflow-hidden cursor-pointer" 
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow duration-200" 
                   onClick={() => handleFileClick(file)}
                 >
                   {renderFile(file)}
                   <div className="p-2">
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-gray-500">{file.type} - {new Date(file.date).toLocaleDateString()}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{file.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {file.type} - {new Date(file.date).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               ))}

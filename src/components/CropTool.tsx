@@ -153,7 +153,7 @@ export function CropTool({ imageRef, onCropComplete, onCancel, aspectRatio }: Cr
     >
       {crop && (
         <>
-          <div className="absolute inset-0 bg-black bg-opacity-50">
+          <div className="absolute inset-0 bg-black dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-70">
             <div
               className="absolute bg-transparent"
               style={{
@@ -165,7 +165,7 @@ export function CropTool({ imageRef, onCropComplete, onCancel, aspectRatio }: Cr
             />
           </div>
           <div
-            className="absolute border-2 border-blue-500"
+            className="absolute border-2 border-blue-500 dark:border-blue-400"
             style={{
               left: `${crop.x}px`,
               top: `${crop.y}px`,
@@ -173,16 +173,16 @@ export function CropTool({ imageRef, onCropComplete, onCancel, aspectRatio }: Cr
               height: `${crop.height}px`,
             }}
           >
-            <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-white border border-blue-500" />
-            <div className="absolute -right-1.5 -top-1.5 w-3 h-3 bg-white border border-blue-500" />
-            <div className="absolute -left-1.5 -bottom-1.5 w-3 h-3 bg-white border border-blue-500" />
-            <div className="absolute -right-1.5 -bottom-1.5 w-3 h-3 bg-white border border-blue-500" />
+            <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-white dark:bg-gray-200 border border-blue-500 dark:border-blue-400" />
+            <div className="absolute -right-1.5 -top-1.5 w-3 h-3 bg-white dark:bg-gray-200 border border-blue-500 dark:border-blue-400" />
+            <div className="absolute -left-1.5 -bottom-1.5 w-3 h-3 bg-white dark:bg-gray-200 border border-blue-500 dark:border-blue-400" />
+            <div className="absolute -right-1.5 -bottom-1.5 w-3 h-3 bg-white dark:bg-gray-200 border border-blue-500 dark:border-blue-400" />
             
             <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="border-white border-opacity-50"
+                  className="border-white dark:border-gray-200 border-opacity-50"
                   style={{
                     borderWidth: i % 2 === 0 ? '0 1px' : '1px 0'
                   }}

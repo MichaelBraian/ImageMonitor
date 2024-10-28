@@ -8,7 +8,6 @@ import { ArrowLeft } from 'lucide-react';
 
 export function ImageEditor() {
   const { imageId } = useParams<{ imageId: string }>();
-  console.log('ImageEditor received imageId:', imageId);
   const navigate = useNavigate();
   const { getFile } = useFiles();
   const [file, setFile] = useState<DentalFile | null>(null);
@@ -21,14 +20,12 @@ export function ImageEditor() {
         try {
           setLoading(true);
           const fetchedFile = await getFile(imageId);
-          console.log('Fetched file:', fetchedFile);
           if (fetchedFile) {
             setFile(fetchedFile);
           } else {
             setError('File not found');
           }
         } catch (err) {
-          console.error('Error fetching file:', err);
           setError('An error occurred while fetching the file');
         } finally {
           setLoading(false);
@@ -39,21 +36,24 @@ export function ImageEditor() {
   }, [imageId, getFile]);
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="p-6 text-gray-800 dark:text-gray-200">Loading...</div>;
   }
 
   if (error) {
-    return <div className="p-6 text-red-500">{error}</div>;
+    return <div className="p-6 text-red-600 dark:text-red-400">{error}</div>;
   }
 
   if (!file) {
-    return <div className="p-6">No file found</div>;
+    return <div className="p-6 text-gray-800 dark:text-gray-200">No file found</div>;
   }
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <div className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 flex items-center">
-        <button onClick={() => navigate(-1)} className="mr-4">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="mr-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+        >
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-lg font-medium text-gray-900 dark:text-white">
@@ -62,7 +62,7 @@ export function ImageEditor() {
       </div>
       <div className="flex-1 overflow-hidden">
         {file.fileType === '2D' ? (
-          <Editor2D file={file} />
+          <Editor2D imageUrl={file.url} />
         ) : (
           <ThreeDViewer fileUrl={file.url} fileFormat={file.format as 'STL' | 'PLY'} />
         )}
