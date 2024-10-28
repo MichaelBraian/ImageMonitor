@@ -17,8 +17,8 @@ export function ThreeDViewer({ fileUrl, fileFormat }: ThreeDViewerProps) {
         <Canvas>
           <OrthographicCamera
             makeDefault
-            zoom={50}
-            position={[0, 0, 100]}
+            zoom={20}  // Reduced zoom to show more of the object
+            position={[0, 0, 200]}  // Moved camera further back
             near={0.1}
             far={2000}
           />
@@ -33,9 +33,7 @@ export function ThreeDViewer({ fileUrl, fileFormat }: ThreeDViewerProps) {
           <ambientLight intensity={0.9} />
           <directionalLight position={[10, 10, 5]} intensity={0.5} />
           <Model url={fileUrl} format={fileFormat} />
-          
-          {/* Add a grid to help with spatial awareness */}
-          <gridHelper args={[100, 100, '#666666', '#444444']} />
+          {/* Removed the gridHelper */}
         </Canvas>
       </div>
     </div>
