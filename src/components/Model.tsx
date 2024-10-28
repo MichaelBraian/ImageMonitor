@@ -23,9 +23,18 @@ export function Model({ url, format }: ModelProps) {
 
   if (!geometry) return null;
 
+  // Use different materials based on format
+  const material = format === 'PLY' 
+    ? new THREE.MeshStandardMaterial({ 
+        vertexColors: true,
+        side: THREE.DoubleSide
+      })
+    : new THREE.MeshStandardMaterial({ 
+        color: '#B8B8B8',
+        side: THREE.DoubleSide
+      });
+
   return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color="#B8B8B8" />
-    </mesh>
+    <mesh geometry={geometry} material={material} />
   );
 }
