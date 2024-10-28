@@ -35,6 +35,11 @@ export function ImageEditor() {
     fetchFile();
   }, [imageId, getFile]);
 
+  const handleSave = async () => {
+    // Implement save functionality
+    console.log('Saving changes...');
+  };
+
   if (loading) {
     return <div className="p-6 text-gray-800 dark:text-gray-200">Loading...</div>;
   }
@@ -62,7 +67,11 @@ export function ImageEditor() {
       </div>
       <div className="flex-1 overflow-hidden">
         {file.fileType === '2D' ? (
-          <Editor2D imageUrl={file.url} />
+          <Editor2D 
+            imageUrl={file.url} 
+            onSave={handleSave}
+            onClose={() => navigate(-1)}
+          />
         ) : (
           <ThreeDViewer fileUrl={file.url} fileFormat={file.format as 'STL' | 'PLY'} />
         )}
