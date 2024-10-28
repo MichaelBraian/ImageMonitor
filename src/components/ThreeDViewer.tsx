@@ -10,28 +10,34 @@ interface ThreeDViewerProps {
 
 export function ThreeDViewer({ fileUrl, fileFormat }: ThreeDViewerProps) {
   return (
-    <div className="w-full h-full">
-      <Canvas>
-        <OrthographicCamera
-          makeDefault
-          zoom={50}
-          position={[0, 0, 100]}
-          near={0.1}
-          far={2000}
-        />
-        <OrbitControls 
-          makeDefault 
-          enableRotate={true} 
-          enableZoom={true} 
-          enablePan={true}
-          // Add these props for better orthographic control
-          minZoom={10}
-          maxZoom={500}
-        />
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[10, 10, 5]} intensity={0.5} />
-        <Model url={fileUrl} format={fileFormat} />
-      </Canvas>
+    // Add padding and container styling
+    <div className="p-8 h-full w-full flex items-center justify-center">
+      {/* Add a visible boundary with shadow and border */}
+      <div className="w-[800px] h-[600px] rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg bg-gray-50 dark:bg-gray-900 overflow-hidden">
+        <Canvas>
+          <OrthographicCamera
+            makeDefault
+            zoom={50}
+            position={[0, 0, 100]}
+            near={0.1}
+            far={2000}
+          />
+          <OrbitControls 
+            makeDefault 
+            enableRotate={true} 
+            enableZoom={true} 
+            enablePan={true}
+            minZoom={10}
+            maxZoom={500}
+          />
+          <ambientLight intensity={0.9} />
+          <directionalLight position={[10, 10, 5]} intensity={0.5} />
+          <Model url={fileUrl} format={fileFormat} />
+          
+          {/* Add a grid to help with spatial awareness */}
+          <gridHelper args={[100, 100, '#666666', '#444444']} />
+        </Canvas>
+      </div>
     </div>
   );
 }
