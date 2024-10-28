@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Save, X, FlipHorizontal, FlipVertical, Crop } from 'lucide-react';
+import { Loader2, Save, X, FlipHorizontal, FlipVertical, Crop, Undo, Redo, ZoomIn, ZoomOut } from 'lucide-react';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 interface Editor2DProps {
@@ -24,6 +24,14 @@ interface CropArea {
   height: number;
 }
 
+interface EditorState {
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+  filters: FilterSettings;
+  zoom: number;
+}
+
 export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [rotation, setRotation] = useState(0);
@@ -43,6 +51,9 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const imageRef = useRef<HTMLImageElement>(null);
 
   const [displayUrl, setDisplayUrl] = useState<string>('');
+  const [zoom, setZoom] = useState(100);
+  const [undoStack, setUndoStack] = useState<EditorState[]>([]);
+  const [redoStack, setRedoStack] = useState<EditorState[]>([]);
 
   useEffect(() => {
     const loadImage = async () => {
@@ -87,6 +98,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
   const getTransformStyle = () => {
     return {
       transform: `
+        scale(${zoom / 100})
         rotate(${rotation}deg)
         scaleX(${flipH ? -1 : 1})
         scaleY(${flipV ? -1 : 1})
@@ -273,18 +285,107 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
     onSave(finalImage);
   };
 
+  // Function to save current state to undo stack
+  const saveState = () => {
+    const currentState: EditorState = {
+      rotation,
+      flipH,
+      flipV,
+      filters,
+      zoom
+    };
+    setUndoStack(prev => [...prev, currentState]);
+    setRedoStack([]); // Clear redo stack when new change is made
+  };
+
+  // Undo function
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    
+    const previousState = undoStack[undoStack.length - 1];
+    const currentState: EditorState = {
+      rotation,
+      flipH,
+      flipV,
+      filters,
+      zoom
+    };
+    
+    // Apply previous state
+    setRotation(previousState.rotation);
+    setFlipH(previousState.flipH);
+    setFlipV(previousState.flipV);
+    setFilters(previousState.filters);
+    setZoom(previousState.zoom);
+    
+    // Update stacks
+    setUndoStack(prev => prev.slice(0, -1));
+    setRedoStack(prev => [...prev, currentState]);
+  };
+
+  // Redo function
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    
+    const nextState = redoStack[redoStack.length - 1];
+    const currentState: EditorState = {
+      rotation,
+      flipH,
+      flipV,
+      filters,
+      zoom
+    };
+    
+    // Apply next state
+    setRotation(nextState.rotation);
+    setFlipH(nextState.flipH);
+    setFlipV(nextState.flipV);
+    setFilters(nextState.filters);
+    setZoom(nextState.zoom);
+    
+    // Update stacks
+    setRedoStack(prev => prev.slice(0, -1));
+    setUndoStack(prev => [...prev, currentState]);
+  };
+
   return (
     <div className="w-full h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
       {/* Header */}
       <div className="h-16 bg-white dark:bg-gray-800 shadow flex items-center justify-between px-4">
-        <div className="flex items-center">
+        <div className="flex items-center space-x-2">
           <button
             onClick={onClose}
-            className="mr-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
           >
             <X className="w-6 h-6" />
           </button>
           <h1 className="text-xl font-semibold">Image Editor</h1>
+          <div className="ml-4 flex items-center space-x-2">
+            <button
+              onClick={handleUndo}
+              disabled={undoStack.length === 0}
+              className={`p-2 rounded-lg ${
+                undoStack.length === 0 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              title="Undo"
+            >
+              <Undo className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={redoStack.length === 0}
+              className={`p-2 rounded-lg ${
+                redoStack.length === 0 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              title="Redo"
+            >
+              <Redo className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         <button
           onClick={handleSave}
@@ -374,6 +475,46 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
               <Crop className="w-5 h-5 mr-2" />
               {isCropping ? 'Cancel Crop' : 'Crop Image'}
             </button>
+          </div>
+
+          {/* Add Zoom Control at the top */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">
+              Zoom ({zoom}%)
+            </label>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  const newZoom = Math.max(10, zoom - 10);
+                  setZoom(newZoom);
+                  saveState();
+                }}
+                className="p-1 rounded bg-gray-100 dark:bg-gray-700"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <input
+                type="range"
+                min="10"
+                max="200"
+                value={zoom}
+                onChange={(e) => {
+                  setZoom(Number(e.target.value));
+                  saveState();
+                }}
+                className="flex-1"
+              />
+              <button
+                onClick={() => {
+                  const newZoom = Math.min(200, zoom + 10);
+                  setZoom(newZoom);
+                  saveState();
+                }}
+                className="p-1 rounded bg-gray-100 dark:bg-gray-700"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Existing controls */}
