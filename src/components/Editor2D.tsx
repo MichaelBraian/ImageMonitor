@@ -355,16 +355,16 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
         <div className="flex items-center space-x-2">
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300"
           >
             <X className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-semibold">Image Editor</h1>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Image Editor</h1>
           <div className="ml-4 flex items-center space-x-2">
             <button
               onClick={handleUndo}
               disabled={undoStack.length === 0}
-              className={`p-2 rounded-lg ${
+              className={`p-2 rounded-lg text-gray-600 dark:text-gray-300 ${
                 undoStack.length === 0 
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -376,7 +376,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
             <button
               onClick={handleRedo}
               disabled={redoStack.length === 0}
-              className={`p-2 rounded-lg ${
+              className={`p-2 rounded-lg text-gray-600 dark:text-gray-300 ${
                 redoStack.length === 0 
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -412,7 +412,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
           }}
         >
           {isLoading ? (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center text-gray-600 dark:text-gray-300">
               <Loader2 className="w-8 h-8 animate-spin" />
               <p className="mt-2">Loading image...</p>
             </div>
@@ -456,13 +456,13 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
               )}
             </div>
           ) : (
-            <div className="text-red-500">Failed to load image</div>
+            <div className="text-red-500 dark:text-red-400">Failed to load image</div>
           )}
         </div>
 
         {/* Controls Sidebar */}
         <div className="w-80 bg-white dark:bg-gray-800 p-4 overflow-y-auto">
-          {/* Add Crop Button at the top */}
+          {/* Crop Button */}
           <div className="mb-6">
             <button
               onClick={() => setIsCropping(!isCropping)}
@@ -477,9 +477,9 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
             </button>
           </div>
 
-          {/* Add Zoom Control at the top */}
+          {/* Zoom Control */}
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
               Zoom ({zoom}%)
             </label>
             <div className="flex items-center space-x-2">
@@ -489,7 +489,7 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
                   setZoom(newZoom);
                   saveState();
                 }}
-                className="p-1 rounded bg-gray-100 dark:bg-gray-700"
+                className="p-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
@@ -510,19 +510,20 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
                   setZoom(newZoom);
                   saveState();
                 }}
-                className="p-1 rounded bg-gray-100 dark:bg-gray-700"
+                className="p-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Existing controls */}
+          {/* Filter Controls */}
           {!isCropping && (
             <>
-              {/* Rotation Control */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Rotation</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
+                  Rotation
+                </label>
                 <input
                   type="range"
                   min="-180"
@@ -533,26 +534,24 @@ export const Editor2D: React.FC<Editor2DProps> = ({ imageUrl, onSave, onClose })
                 />
               </div>
 
-              {/* Flip Controls */}
               <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setFlipH(!flipH)}
-                  className="flex-1 p-2 bg-gray-100 dark:bg-gray-700 rounded"
+                  className="flex-1 p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
                 >
                   <FlipHorizontal className="w-5 h-5 mx-auto" />
                 </button>
                 <button
                   onClick={() => setFlipV(!flipV)}
-                  className="flex-1 p-2 bg-gray-100 dark:bg-gray-700 rounded"
+                  className="flex-1 p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
                 >
                   <FlipVertical className="w-5 h-5 mx-auto" />
                 </button>
               </div>
 
-              {/* Filter Controls */}
               {Object.entries(filters).map(([key, value]) => (
                 <div key={key} className="mb-4">
-                  <label className="block text-sm font-medium mb-2 capitalize">
+                  <label className="block text-sm font-medium mb-2 capitalize text-gray-700 dark:text-gray-200">
                     {key}
                   </label>
                   <input
