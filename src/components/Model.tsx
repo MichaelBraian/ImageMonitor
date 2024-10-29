@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useLoader } from '@react-three/fiber';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
 import * as THREE from 'three';
@@ -10,20 +9,47 @@ interface ModelProps {
 }
 
 export function Model({ url, format }: ModelProps) {
-  console.log('Model component props:', { url, format });
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loader = format === 'STL' ? new STLLoader() : new PLYLoader();
-    loader.load(url, (loadedGeometry) => {
-      loadedGeometry.computeVertexNormals();
-      setGeometry(loadedGeometry);
-    });
+    
+    console.log('Loading 3D model:', { url, format });
+    
+    loader.load(
+      url,
+      (loadedGeometry) => {
+        console.log('Model loaded successfully');
+        loadedGeometry.computeVertexNormals();
+        setGeometry(loadedGeometry);
+      },
+      (progress) => {
+        console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
+      },
+      (error) => {
+        console.error('Error loading model:', error);
+        setError(error.message);
+      }
+    );
   }, [url, format]);
 
-  if (!geometry) return null;
+  if (error) {
+    return (
+      <div className="text-red-500 text-center">
+        Error loading model: {error}
+      </div>
+    );
+  }
 
-  // Use different materials based on format
+  if (!geometry) {
+    return (
+      <div className="text-gray-500 text-center">
+        Loading model...
+      </div>
+    );
+  }
+
   const material = format === 'PLY' 
     ? new THREE.MeshStandardMaterial({ 
         vertexColors: true,
@@ -34,7 +60,5 @@ export function Model({ url, format }: ModelProps) {
         side: THREE.DoubleSide
       });
 
-  return (
-    <mesh geometry={geometry} material={material} />
-  );
+  return <mesh geometry={geometry} material={material} />;
 }
