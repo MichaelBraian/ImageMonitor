@@ -159,22 +159,45 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         blobSize: blob.size
       });
 
-      // Get the original file document first to get the patientId
-      const fileRef = doc(db, 'patients', user.uid, 'images', fileId);
-      const fileDoc = await getDoc(fileRef);
+      // First, find the file in the patients collection
+      const patientsRef = collection(db, 'patients');
+      const q = query(
+        collection(db, 'patients'),
+        where('dentistId', '==', user.uid)
+      );
       
-      if (!fileDoc.exists()) {
+      const patientsSnapshot = await getDocs(q);
+      let fileDoc = null;
+      let patientId = null;
+
+      // Search through each patient's images
+      for (const patientDoc of patientsSnapshot.docs) {
+        const imagesRef = collection(db, `patients/${patientDoc.id}/images`);
+        const imageDoc = await getDoc(doc(imagesRef, fileId));
+        
+        if (imageDoc.exists()) {
+          fileDoc = imageDoc;
+          patientId = patientDoc.id;
+          break;
+        }
+      }
+
+      if (!fileDoc || !patientId) {
+        console.error('File not found in any patient records:', fileId);
         throw new Error('File not found');
       }
 
       const fileData = fileDoc.data() as DentalFile;
-      const patientId = fileData.patientId;
 
       // Upload to storage with correct path
       const storagePath = `patients/${patientId}/images/${fileId}`;
       const storageRef = ref(storage, storagePath);
       const metadata = {
-        contentType: 'image/jpeg'
+        contentType: 'image/jpeg',
+        customMetadata: {
+          dentistId: user.uid,
+          patientId: patientId
+        }
       };
 
       // Upload new image
@@ -184,6 +207,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Update the file document with new URL
       console.log('Updating Firestore document with new URL');
+      const fileRef = doc(db, `patients/${patientId}/images`, fileId);
       await updateDoc(fileRef, {
         url: newUrl,
         updatedAt: new Date().toISOString()

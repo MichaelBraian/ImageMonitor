@@ -159,23 +159,18 @@ export function PatientDetails() {
         imageUrl={editingFile.url}
         onSave={async (editedImage) => {
           try {
-            // Convert base64 to blob
             const response = await fetch(editedImage);
             const blob = await response.blob();
             
             console.log('Saving edited image...', {
               fileId: editingFile.id,
-              blobSize: blob.size
+              blobSize: blob.size,
+              patientId: patientId
             });
             
-            // Update the file
             await updateFileImage(editingFile.id, blob);
+            await fetchPatientFiles();
             
-            // Refresh the files list
-            const updatedFiles = await getPatientFiles(patientId || '');
-            setFiles(updatedFiles);
-            
-            // Close editor
             setIsEditing(false);
             setEditingFile(null);
           } catch (error) {
