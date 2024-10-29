@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
@@ -14,15 +14,29 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// Set persistence to LOCAL
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('Persistence set to LOCAL');
+  })
+  .catch((error) => {
+    console.error('Error setting persistence:', error);
+  });
+
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Log authentication state changes
+// More detailed auth state logging
 auth.onAuthStateChanged((user) => {
   if (user) {
-    console.log('User is signed in:', user.uid);
+    console.log('Auth state changed - User is signed in:', {
+      uid: user.uid,
+      email: user.email,
+      emailVerified: user.emailVerified
+    });
   } else {
-    console.log('User is signed out');
+    console.log('Auth state changed - User is signed out');
   }
 });
 

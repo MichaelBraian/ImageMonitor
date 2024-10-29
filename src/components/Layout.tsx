@@ -6,6 +6,7 @@ import { Patients } from '../pages/Patients';
 import { PatientDetails } from '../pages/PatientDetails';
 import { ImageEditor } from '../pages/ImageEditor';
 import { Settings } from '../pages/Settings';
+import { FirebaseTest } from './FirebaseTest';
 
 export function Layout() {
   return (
@@ -13,6 +14,7 @@ export function Layout() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
+        <FirebaseTest />
         <main className="flex-1 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Navigate to="/patients" replace />} />
