@@ -4,11 +4,12 @@ import { ThreeDViewer } from '../components/ThreeDViewer';
 import { useFiles } from '../context/FileContext';
 import { DentalFile } from '../types';
 import { ArrowLeft } from 'lucide-react';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { db, auth } from '../firebase/config';
 
 export function ThreeDViewerPage() {
   const { fileId } = useParams<{ fileId: string }>();
   const navigate = useNavigate();
-  const { getPatientFiles } = useFiles();
   const [file, setFile] = useState<DentalFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,17 +20,36 @@ export function ThreeDViewerPage() {
       
       try {
         setLoading(true);
-        // First get all files and find the one we want
-        const allFiles = await getPatientFiles(fileId);
-        const targetFile = allFiles.find(f => f.id === fileId);
-        
-        if (!targetFile) {
+        const user = auth.currentUser;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        // First, get all patients for this dentist
+        const patientsQuery = query(collection(db, 'patients'));
+        const patientsSnapshot = await getDocs(patientsQuery);
+
+        // Search through each patient's models collection
+        let foundFile: DentalFile | null = null;
+        for (const patientDoc of patientsSnapshot.docs) {
+          const modelsQuery = collection(db, `patients/${patientDoc.id}/models`);
+          const modelsSnapshot = await getDocs(modelsQuery);
+          
+          const matchingFile = modelsSnapshot.docs.find(doc => doc.id === fileId);
+          if (matchingFile) {
+            foundFile = { id: matchingFile.id, ...matchingFile.data() } as DentalFile;
+            break;
+          }
+        }
+
+        if (!foundFile) {
+          console.error('File not found in any patient records');
           setError('File not found');
           return;
         }
 
-        console.log('Found 3D file:', targetFile);
-        setFile(targetFile);
+        console.log('Found 3D file:', foundFile);
+        setFile(foundFile);
       } catch (err) {
         console.error('Error fetching file:', err);
         setError('Failed to load file');
