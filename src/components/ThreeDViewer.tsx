@@ -2,6 +2,7 @@ import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, OrthographicCamera } from '@react-three/drei';
 import { Model } from './Model';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 interface ThreeDViewerProps {
   fileUrl: string;
@@ -11,27 +12,46 @@ interface ThreeDViewerProps {
 export function ThreeDViewer({ fileUrl, fileFormat }: ThreeDViewerProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Verify the URL is accessible
-    fetch(fileUrl)
-      .then(response => {
+    const loadModel = async () => {
+      try {
+        // Get a fresh download URL
+        const storage = getStorage();
+        const fileRef = ref(storage, fileUrl);
+        const url = await getDownloadURL(fileRef);
+        console.log('Generated download URL:', url);
+        setDownloadUrl(url);
+        
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to load file: ${response.statusText}`);
         }
         setIsLoading(false);
-      })
-      .catch(err => {
+      } catch (err: any) {
         console.error('Error loading 3D file:', err);
-        setError('Failed to load 3D model. Please try again.');
+        const errorMessage = err.message || 'Unknown error occurred';
+        setError(`Failed to load 3D model: ${errorMessage}`);
         setIsLoading(false);
-      });
+      }
+    };
+
+    loadModel();
   }, [fileUrl]);
 
   if (error) {
     return (
       <div className="p-8 h-[80vh] w-full flex items-center justify-center">
         <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  if (!downloadUrl) {
+    return (
+      <div className="p-8 h-[80vh] w-full flex items-center justify-center">
+        <div className="text-gray-700">Generating download URL...</div>
       </div>
     );
   }
@@ -58,7 +78,7 @@ export function ThreeDViewer({ fileUrl, fileFormat }: ThreeDViewerProps) {
           <ambientLight intensity={1.5} />
           <directionalLight position={[10, 10, 5]} intensity={0.5} />
           <Suspense fallback={null}>
-            <Model url={fileUrl} format={fileFormat} />
+            <Model url={downloadUrl} format={fileFormat} />
           </Suspense>
         </Canvas>
       </div>
