@@ -66,12 +66,21 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fileType: type
       };
 
-      // Save to Firestore
-      console.log('Saving to Firestore:', { collectionPath: `patients/${patientId}/${folder}`, fileData });
-      const docRef = doc(db, `patients/${patientId}/${folder}`, fileId);
-      await setDoc(docRef, fileData);
-
-      return fileData;
+      try {
+        // Save to Firestore with a different path structure
+        console.log('Saving to Firestore:', { patientId, fileId, fileData });
+        await setDoc(
+          doc(db, 'patients', patientId, folder, fileId), 
+          fileData
+        );
+        
+        return fileData;
+      } catch (firestoreError) {
+        // If Firestore save fails, delete the uploaded file from storage
+        console.error('Firestore save failed, cleaning up storage:', firestoreError);
+        await deleteObject(storageRef);
+        throw firestoreError;
+      }
     } catch (error) {
       console.error('Error in uploadFile:', error);
       throw error;

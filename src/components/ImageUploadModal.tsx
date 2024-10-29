@@ -23,7 +23,6 @@ export function ImageUploadModal({ isOpen, onClose, onUploadComplete, patientId 
     const files = Array.from(event.target.files || []);
     try {
       const newFiles = await Promise.all(files.map(async (file) => {
-        console.log("Processing file:", file);
         const fileType = file.type.startsWith('image/') ? '2D' as const : '3D' as const;
         const format = file.name.toLowerCase().endsWith('.stl') ? 'STL' as const :
                       file.name.toLowerCase().endsWith('.ply') ? 'PLY' as const : '2D' as const;
@@ -37,7 +36,6 @@ export function ImageUploadModal({ isOpen, onClose, onUploadComplete, patientId 
           format,
         };
       }));
-      console.log("Processed files:", newFiles);
       setSelectedFiles(prev => [...prev, ...newFiles]);
     } catch (err) {
       console.error("Error processing files:", err);
@@ -56,11 +54,19 @@ export function ImageUploadModal({ isOpen, onClose, onUploadComplete, patientId 
 
     try {
       for (const file of selectedFiles) {
+        console.log('Uploading file:', {
+          file: file.file,
+          patientId,
+          fileType: file.fileType
+        });
+        
         await uploadFile(file.file, patientId, file.fileType);
       }
       
       setSelectedFiles([]);
-      onUploadComplete();
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
       onClose();
     } catch (err) {
       console.error("Error in handleUpload:", err);

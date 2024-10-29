@@ -121,6 +121,13 @@ export function PatientDetails() {
     return groups;
   }, [files]);
 
+  const handleUploadComplete = useCallback(async () => {
+    if (patientId) {
+      const fetchedFiles = await getPatientFiles(patientId);
+      setFiles(fetchedFiles);
+    }
+  }, [patientId, getPatientFiles]);
+
   // Early return for loading state
   if (!patient) {
     return (
@@ -302,7 +309,7 @@ export function PatientDetails() {
       <ImageUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onUploadComplete={handleFileUpload}
+        onUploadComplete={handleUploadComplete}
         patientId={patientId || ''}
       />
 
