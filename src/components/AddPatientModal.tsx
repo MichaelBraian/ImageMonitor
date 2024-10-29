@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { usePatients } from '../context/PatientContext';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 
 interface AddPatientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string) => Promise<void>;
 }
 
-export function AddPatientModal({ isOpen, onClose, onSubmit }: AddPatientModalProps) {
+export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { addPatient } = usePatients();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +25,12 @@ export function AddPatientModal({ isOpen, onClose, onSubmit }: AddPatientModalPr
 
     try {
       if (name.trim()) {
-        await onSubmit(name);
+        await addPatient({
+          name,
+          lastImageDate: new Date().toISOString(),
+          imageCount: 0,
+          profileImage: null
+        });
         setName('');
         onClose();
       }
@@ -51,6 +54,11 @@ export function AddPatientModal({ isOpen, onClose, onSubmit }: AddPatientModalPr
             <X className="w-5 h-5" />
           </button>
         </div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
