@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 export function TopBar() {
   const { isDark, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -45,17 +45,20 @@ export function TopBar() {
           <button
             onClick={handleLogout}
             className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            title="Logout"
           >
             <LogOut className="w-5 h-5" />
           </button>
           <div className="flex items-center space-x-3">
             <img
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+              src={user?.photoURL || "https://via.placeholder.com/32"}
               alt="User avatar"
               className="w-8 h-8 rounded-full"
             />
             <div className="hidden md:block">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Dr. John Doe</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                {user?.displayName || user?.email || 'User'}
+              </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
             </div>
           </div>

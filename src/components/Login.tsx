@@ -1,43 +1,29 @@
 import React, { useState } from 'react';
-import { auth } from '../firebase';
+import { auth } from '../firebase/config';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { usePatients } from '../context/PatientContext';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { fetchPatients } = usePatients();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('User signed in:', userCredential.user);
-      if (typeof fetchPatients === 'function') {
-        await fetchPatients();
-      } else {
-        console.error('fetchPatients is not a function');
-      }
-      navigate('/');
-    } catch (error: unknown) {
-      console.error('Error signing in:', error);
-      if (error instanceof Error) {
-        switch ((error as { code?: string }).code) {
-          case 'auth/user-not-found':
-            setError('No user found with this email address.');
-            break;
-          case 'auth/wrong-password':
-            setError('Incorrect password. Please try again.');
-            break;
-          default:
-            setError('Failed to sign in. Please check your email and password.');
-        }
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      console.log('Login successful:', userCredential.user.uid);
+      navigate('/patients');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Failed to sign in');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,9 +57,10 @@ export const Login: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="w-full px-4 py-2 tracking-wide text-white transition-colors duration-200 transform bg-blue-500 rounded-md hover:bg-blue-400 focus:outline-none focus:bg-blue-400 focus:ring focus:ring-blue-300 focus:ring-opacity-50"
+            disabled={loading}
+            className="w-full px-4 py-2 tracking-wide text-white transition-colors duration-200 transform bg-blue-500 rounded-md hover:bg-blue-400 focus:outline-none focus:bg-blue-400 focus:ring focus:ring-blue-300 focus:ring-opacity-50 disabled:opacity-50"
           >
-            Sign in
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
       </div>

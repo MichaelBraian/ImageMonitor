@@ -1,12 +1,25 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Settings as SettingsIcon,
   LogOut
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export function Sidebar() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Failed to log out:', error);
+    }
+  };
+
   const navItems = [
     { icon: Users, label: 'Patients', path: '/patients' },
     { icon: SettingsIcon, label: 'Settings', path: '/settings' },
@@ -41,7 +54,10 @@ export function Sidebar() {
         </nav>
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <button className="flex items-center w-full px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center w-full px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
             <LogOut className="w-5 h-5 mr-3" />
             Logout
           </button>
