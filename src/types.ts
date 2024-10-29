@@ -9,6 +9,7 @@ export interface Patient {
   lastImageDate: string;
   imageCount: number;
   userId: string;
+  dentistId: string;
   createdAt: string;
   profileImage?: string | null;
 }

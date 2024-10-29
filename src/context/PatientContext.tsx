@@ -51,6 +51,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newPatient = {
       ...patient,
       userId: user.uid,
+      dentistId: user.uid,
       createdAt: new Date().toISOString(),
       imageCount: 0,
       lastImageDate: new Date().toISOString()
@@ -78,6 +79,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
         lastImageDate: data.lastImageDate || '',
         imageCount: data.imageCount || 0,
         userId: data.userId || '',
+        dentistId: data.dentistId || '',
         createdAt: data.createdAt || ''
       };
     }
