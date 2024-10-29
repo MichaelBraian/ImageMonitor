@@ -153,6 +153,12 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error('User must be authenticated');
 
     try {
+      console.log('Attempting to update file:', {
+        fileId,
+        userId: user.uid,
+        blobSize: blob.size
+      });
+
       // Get the original file document first to get the patientId
       const fileRef = doc(db, 'patients', user.uid, 'images', fileId);
       const fileDoc = await getDoc(fileRef);
@@ -168,13 +174,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storagePath = `patients/${patientId}/images/${fileId}`;
       const storageRef = ref(storage, storagePath);
       const metadata = {
-        contentType: 'image/jpeg',
-        customMetadata: {
-          dentistId: user.uid,
-          patientId: patientId,
-          fileType: '2D',
-          isEdited: 'true'
-        }
+        contentType: 'image/jpeg'
       };
 
       // Upload new image
@@ -191,7 +191,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('File update completed successfully');
     } catch (error) {
-      console.error('Error updating file image:', error);
+      console.error('Detailed error in updateFileImage:', {
+        error,
+        fileId,
+        userId: user?.uid
+      });
       throw error;
     }
   };

@@ -1,42 +1,35 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is authenticated
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Helper function to check if user owns the document
     function isOwner() {
       return request.auth.uid == request.resource.data.dentistId;
     }
-    
+
     // Dentists collection
     match /dentists/{dentistId} {
       allow read, write: if request.auth != null && request.auth.uid == dentistId;
     }
-    
+
     // Patients collection
     match /patients/{patientId} {
+      // Allow read/write if user is authenticated and is the dentist
       allow create: if isAuthenticated() && isOwner();
       allow read, update, delete: if isAuthenticated() && 
         request.auth.uid == resource.data.dentistId;
       
-      // Files subcollection
-      match /files/{fileId} {
-        allow read, write: if isAuthenticated() && isOwner(resource.data.dentistId);
-      }
-      
       // Images subcollection
       match /images/{imageId} {
-        allow read, write: if isAuthenticated() && 
-          request.auth.uid == get(/databases/$(database)/documents/patients/$(patientId)).data.dentistId;
+        allow read, write: if isAuthenticated();
       }
       
       // Models subcollection
       match /models/{modelId} {
-        allow read, write: if isAuthenticated() && 
-          request.auth.uid == get(/databases/$(database)/documents/patients/$(patientId)).data.dentistId;
+        allow read, write: if isAuthenticated();
       }
     }
   }
