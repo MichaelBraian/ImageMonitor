@@ -60,11 +60,9 @@ export function PatientDetails() {
         url: file.url,
         type: file.type,
         fileType: file.fileType,
-        // Log the full file object to see what we're working with
         fullFile: file
       });
       
-      // Verify the URL format
       if (!file.url.startsWith('https://') && !file.url.startsWith('gs://')) {
         console.error('Invalid URL format:', file.url);
         return;
@@ -73,7 +71,7 @@ export function PatientDetails() {
       setEditingFile(file);
       setIsEditing(true);
     } else {
-      navigate(`/editor/${file.id}`);
+      navigate(`/viewer/3d/${file.id}`);
     }
   };
 

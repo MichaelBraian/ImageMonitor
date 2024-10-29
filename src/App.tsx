@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { PatientProvider } from './context/PatientContext';
 import { FileProvider } from './context/FileContext';
 import { Layout } from './components/Layout';
-import { ThreeDViewer } from './components/ThreeDViewer';
+import { ThreeDViewerPage } from './pages/ThreeDViewerPage';
 
 const App = () => {
   return (
@@ -14,7 +14,7 @@ const App = () => {
           <FileProvider>
             <Routes>
               <Route path="/*" element={<Layout />} />
-              <Route path="/viewer/3d/:fileId" element={<ThreeDViewer />} />
+              <Route path="/viewer/3d/:fileId" element={<ThreeDViewerPage />} />
             </Routes>
           </FileProvider>
         </PatientProvider>
