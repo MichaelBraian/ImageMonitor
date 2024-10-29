@@ -1,226 +1,143 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { DentalFile, ImageCategory, ImageGroup } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth } from '../firebase/config';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject, uploadString, listAll } from 'firebase/storage';
+import { DentalFile, FileType } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface FileContextType {
-  files: DentalFile[];
+  uploadFile: (file: File, patientId: string, type: FileType) => Promise<DentalFile>;
   getPatientFiles: (patientId: string) => Promise<DentalFile[]>;
-  getFile: (fileId: string) => Promise<DentalFile | undefined>;
-  addFile: (file: Omit<DentalFile, 'id'>) => Promise<DentalFile>;
-  updateFileGroup: (fileId: string, group: ImageGroup) => Promise<void>;
-  updateFileCategory: (fileId: string, category: ImageCategory) => Promise<void>;
-  deleteFile: (fileId: string) => Promise<void>;
+  deleteFile: (fileId: string, patientId: string) => Promise<void>;
   updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
-  refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
-  updateFileImage: (fileId: string, imageBlob: Blob) => Promise<string>;
-  loadFiles: (patientId: string) => Promise<void>;
-  loading: boolean;
-  error: string | null;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
 
-export function FileProvider({ children }: { children: React.ReactNode }) {
-  const [files, setFiles] = useState<DentalFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchFiles = async () => {
-      const querySnapshot = await getDocs(collection(db, 'files'));
-      const fetchedFiles = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
-      setFiles(fetchedFiles);
-    };
-    fetchFiles();
-  }, []);
-
-  const getPatientFiles = useCallback(async (patientId: string) => {
-    const q = query(collection(db, 'files'), where('patientId', '==', patientId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
-  }, []);
-
-  const getFile = useCallback(async (fileId: string) => {
-    try {
-      console.log('Fetching file from Firestore with ID:', fileId);
-      const docRef = doc(db, 'files', fileId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const fileData = { id: docSnap.id, ...docSnap.data() } as DentalFile;
-        console.log('File data from Firestore:', fileData);
-        return fileData;
-      } else {
-        console.log('No such document!');
-        return undefined;
-      }
-    } catch (error) {
-      console.error('Error fetching file:', error);
-      throw error;
-    }
-  }, []);
-
-  const addFile = useCallback(async (file: Omit<DentalFile, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'files'), file);
-    const newFile = { ...file, id: docRef.id };
-    setFiles(prev => [...prev, newFile]);
-    return newFile;
-  }, []);
-
-  const updateFileGroup = useCallback(async (fileId: string, group: ImageGroup) => {
-    const docRef = doc(db, 'files', fileId);
-    await updateDoc(docRef, { group });
-    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, group } : f));
-  }, []);
-
-  const updateFileCategory = useCallback(async (fileId: string, category: ImageCategory) => {
-    const docRef = doc(db, 'files', fileId);
-    await updateDoc(docRef, { type: category });
-    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, type: category } : f));
-  }, []);
-
-  const deleteFile = useCallback(async (fileId: string) => {
+export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const uploadFile = async (file: File, patientId: string, type: FileType): Promise<DentalFile> => {
     const user = auth.currentUser;
-    if (!user) throw new Error('User must be authenticated to delete files');
+    if (!user) throw new Error('User must be authenticated to upload files');
 
-    await deleteDoc(doc(db, 'files', fileId));
-    const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
-    await deleteObject(storageRef);
-    setFiles(prev => prev.filter(f => f.id !== fileId));
-  }, []);
+    // Determine file format
+    const format = file.name.toLowerCase().endsWith('.stl') ? 'STL' :
+                  file.name.toLowerCase().endsWith('.ply') ? 'PLY' : '2D';
 
-  const updateFile = useCallback(async (fileId: string, updates: Partial<DentalFile>) => {
-    const docRef = doc(db, 'files', fileId);
-    await updateDoc(docRef, updates);
-    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, ...updates } : f));
-  }, []);
+    // Create appropriate storage path based on file type
+    const fileId = uuidv4();
+    const storagePath = type === '2D' 
+      ? `patients/${patientId}/images/${fileId}` 
+      : `patients/${patientId}/models/${fileId}`;
 
-  const refreshPatientFiles = useCallback(async (patientId: string) => {
     try {
-      const q = query(collection(db, 'files'), where('patientId', '==', patientId));
-      const querySnapshot = await getDocs(q);
-      const fetchedFiles: DentalFile[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
-      setFiles(prevFiles => {
-        const updatedFiles = prevFiles.filter(f => f.patientId !== patientId).concat(fetchedFiles);
-        return updatedFiles;
-      });
-      return fetchedFiles;
+      // Upload file to Storage
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+
+      // Create Firestore document
+      const fileData: Omit<DentalFile, 'id'> = {
+        url,
+        name: file.name,
+        type: 'Unsorted',
+        format,
+        userId: user.uid,
+        patientId,
+        createdAt: new Date().toISOString(),
+        group: 'Unsorted',
+        date: new Date().toISOString(),
+        fileType: type,
+        dentistId: user.uid // Important for security rules
+      };
+
+      const collectionPath = type === '2D' 
+        ? `patients/${patientId}/images`
+        : `patients/${patientId}/models`;
+
+      const docRef = await addDoc(collection(db, collectionPath), fileData);
+
+      return { id: docRef.id, ...fileData };
     } catch (error) {
-      console.error('Error refreshing patient files:', error);
-      return [];
+      console.error('Error uploading file:', error);
+      throw new Error('Failed to upload file');
     }
-  }, []);
-
-  const uploadFile = async (file: File, patientId: string, category: string) => {
-    // ... (existing upload logic)
-
-    // After successful upload and document creation
-    await refreshPatientFiles(patientId);
   };
 
-  const updateFileImage = async (fileId: string, imageBlob: Blob): Promise<string> => {
+  const getPatientFiles = async (patientId: string): Promise<DentalFile[]> => {
     const user = auth.currentUser;
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      // Upload the new image
-      const storageRef = ref(storage, `files/${user.uid}/${fileId}`);
-      await uploadBytes(storageRef, imageBlob);
-      
-      // Get the new URL
-      const newUrl = await getDownloadURL(storageRef);
-      
-      // Update Firestore document
-      await updateDoc(doc(db, 'files', fileId), {
-        url: newUrl,
-        updatedAt: new Date().toISOString()
-      });
+      // Get both images and models
+      const imagesQuery = query(collection(db, `patients/${patientId}/images`));
+      const modelsQuery = query(collection(db, `patients/${patientId}/models`));
 
-      return newUrl;
+      const [imagesSnapshot, modelsSnapshot] = await Promise.all([
+        getDocs(imagesQuery),
+        getDocs(modelsQuery)
+      ]);
+
+      const images = imagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
+      const models = modelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DentalFile));
+
+      return [...images, ...models];
     } catch (error) {
-      console.error('Error in updateFileImage:', error);
+      console.error('Error fetching files:', error);
       throw error;
     }
   };
 
-  const loadFiles = async (patientId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Clear existing files when loading new ones
-      setFiles([]);
+  const deleteFile = async (fileId: string, patientId: string): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
 
-      const storageRef = ref(storage, `patients/${patientId}/images`);
-      
-      try {
-        const result = await listAll(storageRef);
-        
-        if (result.items.length === 0) {
-          setLoading(false);
-          return;
-        }
+    // Get file details to determine type
+    const file = await getDoc(doc(db, `patients/${patientId}/files/${fileId}`));
+    if (!file.exists()) throw new Error('File not found');
 
-        const filePromises = result.items.map(async (item) => {
-          try {
-            const url = await getDownloadURL(item);
-            return {
-              id: item.name,
-              url,
-              group: item.name.split('/')[0] || 'ungrouped',
-            };
-          } catch (err) {
-            console.error(`Error loading file ${item.name}:`, err);
-            return null;
-          }
-        });
+    const fileData = file.data() as DentalFile;
+    const isImage = fileData.fileType === '2D';
 
-        const loadedFiles = (await Promise.all(filePromises)).filter((file): file is DentalFile => file !== null);
-        setFiles(loadedFiles);
-      } catch (err) {
-        console.error('Error listing files:', err);
-        setError('Failed to load images');
-      }
-    } finally {
-      setLoading(false);
-    }
+    // Delete from Storage
+    const storagePath = isImage 
+      ? `patients/${patientId}/images/${fileId}`
+      : `patients/${patientId}/models/${fileId}`;
+    
+    const storageRef = ref(storage, storagePath);
+    await deleteObject(storageRef);
+
+    // Delete from Firestore
+    const collectionPath = isImage ? 'images' : 'models';
+    await deleteDoc(doc(db, `patients/${patientId}/${collectionPath}/${fileId}`));
+  };
+
+  const updateFile = async (fileId: string, updates: Partial<DentalFile>): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
+
+    const { patientId, fileType } = updates;
+    if (!patientId) throw new Error('PatientId is required');
+
+    const collectionPath = fileType === '2D' ? 'images' : 'models';
+    await updateDoc(doc(db, `patients/${patientId}/${collectionPath}/${fileId}`), updates);
   };
 
   return (
     <FileContext.Provider value={{
-      files,
+      uploadFile,
       getPatientFiles,
-      getFile,
-      addFile,
-      updateFileGroup,
-      updateFileCategory,
       deleteFile,
       updateFile,
-      refreshPatientFiles,
-      updateFileImage,
-      loadFiles,
-      loading,
-      error,
     }}>
       {children}
     </FileContext.Provider>
   );
-}
+};
 
-export function useFiles() {
-  const context = useContext(FileContext);
-  if (context === undefined) {
-    throw new Error('useFiles must be used within a FileProvider');
-  }
-  return context;
-}
-
-export const useFileContext = () => {
+export const useFiles = () => {
   const context = useContext(FileContext);
   if (!context) {
-    throw new Error('useFileContext must be used within a FileProvider');
+    throw new Error('useFiles must be used within FileProvider');
   }
   return context;
 };
