@@ -29,7 +29,10 @@ export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
           name,
           lastImageDate: new Date().toISOString(),
           imageCount: 0,
-          profileImage: null
+          profileImage: null,
+          dentistId: user.uid,
+          userId: user.uid,
+          createdAt: new Date().toISOString()
         });
         setName('');
         onClose();

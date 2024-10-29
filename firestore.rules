@@ -7,17 +7,36 @@ service cloud.firestore {
     }
     
     // Helper function to check if user owns the document
-    function isOwner(dentistId) {
-      return request.auth.uid == dentistId;
+    function isOwner() {
+      return request.auth.uid == request.resource.data.dentistId;
+    }
+    
+    // Dentists collection
+    match /dentists/{dentistId} {
+      allow read, write: if request.auth != null && request.auth.uid == dentistId;
     }
     
     // Patients collection
     match /patients/{patientId} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.dentistId);
+      allow create: if isAuthenticated() && isOwner();
+      allow read, update, delete: if isAuthenticated() && 
+        request.auth.uid == resource.data.dentistId;
       
       // Files subcollection
       match /files/{fileId} {
         allow read, write: if isAuthenticated() && isOwner(resource.data.dentistId);
+      }
+      
+      // Images subcollection
+      match /images/{imageId} {
+        allow read, write: if isAuthenticated() && 
+          request.auth.uid == get(/databases/$(database)/documents/patients/$(patientId)).data.dentistId;
+      }
+      
+      // Models subcollection
+      match /models/{modelId} {
+        allow read, write: if isAuthenticated() && 
+          request.auth.uid == get(/databases/$(database)/documents/patients/$(patientId)).data.dentistId;
       }
     }
   }
