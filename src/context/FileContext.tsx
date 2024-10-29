@@ -10,6 +10,8 @@ interface FileContextType {
   getPatientFiles: (patientId: string) => Promise<DentalFile[]>;
   deleteFile: (fileId: string, patientId: string) => Promise<void>;
   updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
+  updateFileImage: (fileId: string, blob: Blob) => Promise<void>;
+  refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -146,12 +148,49 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(doc(db, `patients/${patientId}/${collectionPath}/${fileId}`), updates);
   };
 
+  const updateFileImage = async (fileId: string, blob: Blob): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      // Upload the new image to storage
+      const storagePath = `temp/${user.uid}/${fileId}`;
+      const storageRef = ref(storage, storagePath);
+      const metadata = {
+        contentType: 'image/jpeg',
+        customMetadata: {
+          dentistId: user.uid
+        }
+      };
+
+      // Upload new image
+      await uploadBytes(storageRef, blob, metadata);
+      const newUrl = await getDownloadURL(storageRef);
+
+      // Update the file document with new URL
+      const fileRef = doc(db, 'files', fileId);
+      await updateDoc(fileRef, {
+        url: newUrl,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error updating file image:', error);
+      throw error;
+    }
+  };
+
+  const refreshPatientFiles = async (patientId: string): Promise<DentalFile[]> => {
+    return await getPatientFiles(patientId);
+  };
+
   return (
     <FileContext.Provider value={{
       uploadFile,
       getPatientFiles,
       deleteFile,
       updateFile,
+      updateFileImage,
+      refreshPatientFiles
     }}>
       {children}
     </FileContext.Provider>

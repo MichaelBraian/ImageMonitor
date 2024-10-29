@@ -163,11 +163,17 @@ export function PatientDetails() {
             const response = await fetch(editedImage);
             const blob = await response.blob();
             
+            console.log('Saving edited image...', {
+              fileId: editingFile.id,
+              blobSize: blob.size
+            });
+            
             // Update the file
             await updateFileImage(editingFile.id, blob);
             
             // Refresh the files list
-            await fetchPatientFiles();
+            const updatedFiles = await getPatientFiles(patientId || '');
+            setFiles(updatedFiles);
             
             // Close editor
             setIsEditing(false);
