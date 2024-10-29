@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, OrthographicCamera } from '@react-three/drei';
 import { Model } from './Model';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import { auth } from '../firebase/config';
 
 interface ThreeDViewerProps {
   fileUrl: string;
@@ -17,27 +18,47 @@ export function ThreeDViewer({ fileUrl, fileFormat }: ThreeDViewerProps) {
   useEffect(() => {
     const loadModel = async () => {
       try {
-        // Get a fresh download URL
+        // Log authentication state
+        console.log('Current auth state:', {
+          isAuthenticated: !!auth.currentUser,
+          userEmail: auth.currentUser?.email,
+          fileUrl
+        });
+
         const storage = getStorage();
         const fileRef = ref(storage, fileUrl);
+        
+        // Get download URL
+        console.log('Attempting to get download URL for:', fileUrl);
         const url = await getDownloadURL(fileRef);
-        console.log('Generated download URL:', url);
+        console.log('Successfully generated download URL:', url);
         setDownloadUrl(url);
         
+        // Test URL accessibility
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to load file: ${response.statusText}`);
         }
+        console.log('File is accessible via fetch');
         setIsLoading(false);
       } catch (err: any) {
-        console.error('Error loading 3D file:', err);
+        console.error('Detailed error:', {
+          error: err,
+          message: err.message,
+          code: err.code,
+          serverResponse: err.serverResponse
+        });
         const errorMessage = err.message || 'Unknown error occurred';
         setError(`Failed to load 3D model: ${errorMessage}`);
         setIsLoading(false);
       }
     };
 
-    loadModel();
+    if (auth.currentUser) {
+      loadModel();
+    } else {
+      setError('User not authenticated');
+    }
   }, [fileUrl]);
 
   if (error) {

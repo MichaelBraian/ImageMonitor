@@ -17,7 +17,6 @@ export function Model({ url, format }: ModelProps) {
     
     console.log('Starting to load 3D model:', { url, format });
     
-    // Add error handling for invalid URLs
     if (!url) {
       console.error('Invalid URL provided');
       setError('Invalid URL provided');
@@ -51,7 +50,6 @@ export function Model({ url, format }: ModelProps) {
       setError('Failed to initialize model loader');
     }
 
-    // Cleanup function
     return () => {
       if (geometry) {
         geometry.dispose();
@@ -59,12 +57,17 @@ export function Model({ url, format }: ModelProps) {
     };
   }, [url, format]);
 
+  useEffect(() => {
+    if (error) {
+      console.error('Model error state:', error);
+    }
+  }, [error]);
+
   if (error) {
     return (
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="red" />
-        {console.error('Rendering error state:', error)}
       </mesh>
     );
   }
@@ -74,7 +77,6 @@ export function Model({ url, format }: ModelProps) {
       <mesh>
         <boxGeometry args={[0.5, 0.5, 0.5]} />
         <meshStandardMaterial color="gray" />
-        {console.log('Rendering loading state')}
       </mesh>
     );
   }
