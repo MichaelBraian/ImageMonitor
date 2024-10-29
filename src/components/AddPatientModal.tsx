@@ -8,50 +8,32 @@ import { useAuth } from '../context/AuthContext';
 interface AddPatientModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmit: (name: string) => Promise<void>;
 }
 
-export function AddPatientModal({ isOpen, onClose }: AddPatientModalProps) {
+export function AddPatientModal({ isOpen, onClose, onSubmit }: AddPatientModalProps) {
   const [name, setName] = useState('');
-  const { addPatient } = usePatients();
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      try {
-        await addPatient({ name, lastImageDate: new Date().toISOString(), imageCount: 0 });
+    setError(null);
+
+    if (!user) {
+      setError('You must be logged in to add a patient');
+      return;
+    }
+
+    try {
+      if (name.trim()) {
+        await onSubmit(name);
         setName('');
         onClose();
-      } catch (error) {
-        console.error('Error adding patient:', error);
-        if (error instanceof Error) {
-          // Display error message to user
-          alert(`Failed to add patient: ${error.message}`);
-        }
       }
-    }
-  };
-
-  const handleAddPatient = async () => {
-    try {
-      if (!user) {
-        console.error('User not authenticated');
-        return;
-      }
-
-      const patientData = {
-        name,
-        lastImageDate: new Date().toISOString(),
-        imageCount: 0,
-        userId: user.uid,
-      };
-
-      const docRef = await addDoc(collection(db, 'patients'), patientData);
-      console.log('Patient added with ID: ', docRef.id);
-      // ... handle successful addition
-    } catch (error) {
-      console.error('Error adding patient: ', error);
-      // ... handle error (e.g., show error message to user)
+    } catch (err) {
+      console.error('Error adding patient:', err);
+      setError(err instanceof Error ? err.message : 'Failed to add patient');
     }
   };
 
