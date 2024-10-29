@@ -25,14 +25,20 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Create appropriate storage path based on file type
     const fileId = uuidv4();
-    const storagePath = type === '2D' 
-      ? `patients/${patientId}/images/${fileId}` 
-      : `patients/${patientId}/models/${fileId}`;
+    const folder = type === '2D' ? 'images' : 'models';
+    const storagePath = `patients/${patientId}/${folder}/${fileId}`;
 
     try {
-      // Upload file to Storage
+      // Upload file to Storage with metadata
       const storageRef = ref(storage, storagePath);
-      await uploadBytes(storageRef, file);
+      const metadata = {
+        customMetadata: {
+          dentistId: user.uid,
+          patientId: patientId
+        }
+      };
+
+      await uploadBytes(storageRef, file, metadata);
       const url = await getDownloadURL(storageRef);
 
       // Create Firestore document
@@ -42,18 +48,15 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'Unsorted',
         format,
         userId: user.uid,
+        dentistId: user.uid,
         patientId,
         createdAt: new Date().toISOString(),
         group: 'Unsorted',
         date: new Date().toISOString(),
-        fileType: type,
-        dentistId: user.uid // Important for security rules
+        fileType: type
       };
 
-      const collectionPath = type === '2D' 
-        ? `patients/${patientId}/images`
-        : `patients/${patientId}/models`;
-
+      const collectionPath = `patients/${patientId}/${folder}`;
       const docRef = await addDoc(collection(db, collectionPath), fileData);
 
       return { id: docRef.id, ...fileData };

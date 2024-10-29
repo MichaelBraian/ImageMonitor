@@ -55,3 +55,8 @@ export { app, auth, db, storage };
 export const isFirebaseReady = () => {
   return auth && db && storage && app;
 };
+
+// Add this helper function
+export const getCurrentUser = () => {
+  return auth.currentUser;
+};

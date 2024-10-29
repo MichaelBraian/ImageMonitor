@@ -1,14 +1,12 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /patients/{patientId}/images/{imageId} {
-      allow read, write: if request.auth != null &&
-                           firestore.get(/databases/(default)/documents/patients/$(patientId)).data.dentistId == request.auth.uid;
-    }
-    
-    match /patients/{patientId}/models/{modelId} {
-      allow read, write: if request.auth != null &&
-                           firestore.get(/databases/(default)/documents/patients/$(patientId)).data.dentistId == request.auth.uid;
+    match /patients/{patientId}/{type}/{fileId} {
+      allow read: if request.auth != null 
+        && request.auth.uid == resource.metadata.dentistId;
+      allow write: if request.auth != null 
+        && request.auth.uid == request.resource.metadata.dentistId
+        && request.resource.size < 100 * 1024 * 1024; // Increased to 100MB
     }
   }
 }

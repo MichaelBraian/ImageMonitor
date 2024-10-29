@@ -22,8 +22,9 @@ export interface DentalFile {
   url: string;
   name: string;
   type: ImageCategory;
-  format: '2D' | 'PLY' | 'STL';  // Change this line to match the expected format types
+  format: '2D' | 'PLY' | 'STL';
   userId: string;
+  dentistId: string;
   patientId: string;
   createdAt: string;
   group: ImageGroup;
