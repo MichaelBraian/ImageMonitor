@@ -153,26 +153,31 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      // Upload the new image to storage
-      const storagePath = `temp/${user.uid}/${fileId}`;
-      const storageRef = ref(storage, storagePath);
+      // First upload to temp location
+      const tempPath = `patients/${user.uid}/images/${fileId}_edited`;
+      const storageRef = ref(storage, tempPath);
       const metadata = {
         contentType: 'image/jpeg',
         customMetadata: {
-          dentistId: user.uid
+          dentistId: user.uid,
+          isEdited: 'true'
         }
       };
 
       // Upload new image
+      console.log('Uploading edited image to:', tempPath);
       await uploadBytes(storageRef, blob, metadata);
       const newUrl = await getDownloadURL(storageRef);
 
       // Update the file document with new URL
+      console.log('Updating Firestore document with new URL');
       const fileRef = doc(db, 'files', fileId);
       await updateDoc(fileRef, {
         url: newUrl,
         updatedAt: new Date().toISOString()
       });
+
+      console.log('File update completed successfully');
     } catch (error) {
       console.error('Error updating file image:', error);
       throw error;
