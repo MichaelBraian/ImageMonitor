@@ -12,32 +12,46 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+console.log('Initializing Firebase with config:', {
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket
+});
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// Set persistence to LOCAL
-setPersistence(auth, browserLocalPersistence)
-  .then(() => {
-    console.log('Persistence set to LOCAL');
-  })
-  .catch((error) => {
-    console.error('Error setting persistence:', error);
-  });
-
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// More detailed auth state logging
+// Initialize auth persistence
+(async () => {
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+    console.log('Firebase persistence initialized successfully');
+  } catch (error) {
+    console.error('Error initializing Firebase persistence:', error);
+  }
+})();
+
+// Auth state monitoring
 auth.onAuthStateChanged((user) => {
   if (user) {
     console.log('Auth state changed - User is signed in:', {
       uid: user.uid,
       email: user.email,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      isAnonymous: user.isAnonymous,
+      providerData: user.providerData
     });
   } else {
     console.log('Auth state changed - User is signed out');
   }
 });
 
+// Export initialized instances
 export { app, auth, db, storage };
+
+// Export a function to check if Firebase is ready
+export const isFirebaseReady = () => {
+  return auth && db && storage && app;
+};

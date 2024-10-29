@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -9,6 +9,7 @@ import { Settings } from '../pages/Settings';
 import { FirebaseTest } from './FirebaseTest';
 import { Login } from './Login';
 import { useAuth } from '../context/AuthContext';
+import { isFirebaseReady } from '../firebase/config';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { user } = useAuth();
@@ -23,8 +24,19 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
 export function Layout() {
   const { user } = useAuth();
+  const [isReady, setIsReady] = useState(false);
 
-  // If not logged in, only show login route
+  useEffect(() => {
+    // Check if Firebase is properly initialized
+    if (isFirebaseReady()) {
+      setIsReady(true);
+    }
+  }, []);
+
+  if (!isReady) {
+    return <div>Loading...</div>;
+  }
+
   if (!user) {
     return (
       <Routes>
