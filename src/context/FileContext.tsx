@@ -153,25 +153,37 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      // First upload to temp location
-      const tempPath = `patients/${user.uid}/images/${fileId}_edited`;
-      const storageRef = ref(storage, tempPath);
+      // Get the original file document first to get the patientId
+      const fileRef = doc(db, 'patients', user.uid, 'images', fileId);
+      const fileDoc = await getDoc(fileRef);
+      
+      if (!fileDoc.exists()) {
+        throw new Error('File not found');
+      }
+
+      const fileData = fileDoc.data() as DentalFile;
+      const patientId = fileData.patientId;
+
+      // Upload to storage with correct path
+      const storagePath = `patients/${patientId}/images/${fileId}`;
+      const storageRef = ref(storage, storagePath);
       const metadata = {
         contentType: 'image/jpeg',
         customMetadata: {
           dentistId: user.uid,
+          patientId: patientId,
+          fileType: '2D',
           isEdited: 'true'
         }
       };
 
       // Upload new image
-      console.log('Uploading edited image to:', tempPath);
+      console.log('Uploading edited image to:', storagePath);
       await uploadBytes(storageRef, blob, metadata);
       const newUrl = await getDownloadURL(storageRef);
 
       // Update the file document with new URL
       console.log('Updating Firestore document with new URL');
-      const fileRef = doc(db, 'files', fileId);
       await updateDoc(fileRef, {
         url: newUrl,
         updatedAt: new Date().toISOString()
