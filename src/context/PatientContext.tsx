@@ -53,10 +53,8 @@ export const PatientProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newPatient = {
       ...patient,
       userId: user.uid,
-      dentistId: user.uid, // This is crucial for the security rules
-      createdAt: new Date().toISOString(),
-      imageCount: 0,
-      lastImageDate: new Date().toISOString()
+      dentistId: user.uid,
+      createdAt: new Date().toISOString()
     };
 
     try {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth } from '../firebase/config';
 import { DentalFile, FileType } from '../types';
@@ -16,33 +16,43 @@ const FileContext = createContext<FileContextType | undefined>(undefined);
 
 export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const uploadFile = async (file: File, patientId: string, type: FileType): Promise<DentalFile> => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('User must be authenticated to upload files');
-
-    // Determine file format
-    const format = file.name.toLowerCase().endsWith('.stl') ? 'STL' :
-                  file.name.toLowerCase().endsWith('.ply') ? 'PLY' : '2D';
-
-    // Create appropriate storage path based on file type
-    const fileId = uuidv4();
-    const folder = type === '2D' ? 'images' : 'models';
-    const storagePath = `patients/${patientId}/${folder}/${fileId}`;
-
     try {
-      // Upload file to Storage with metadata
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('User must be authenticated to upload files');
+      }
+
+      // Generate unique ID for the file
+      const fileId = uuidv4();
+      
+      // Determine file format and folder
+      const format = file.name.toLowerCase().endsWith('.stl') ? 'STL' :
+                    file.name.toLowerCase().endsWith('.ply') ? 'PLY' : '2D';
+      const folder = type === '2D' ? 'images' : 'models';
+      
+      // Create storage path
+      const storagePath = `patients/${patientId}/${folder}/${fileId}`;
+      
+      // Create storage reference with metadata
       const storageRef = ref(storage, storagePath);
       const metadata = {
+        contentType: file.type,
         customMetadata: {
           dentistId: user.uid,
-          patientId: patientId
+          patientId: patientId,
+          fileType: type,
+          format: format
         }
       };
 
-      await uploadBytes(storageRef, file, metadata);
-      const url = await getDownloadURL(storageRef);
+      // Upload to Storage
+      console.log('Uploading to storage:', { storagePath, metadata });
+      const uploadResult = await uploadBytes(storageRef, file, metadata);
+      const url = await getDownloadURL(uploadResult.ref);
 
-      // Create Firestore document
-      const fileData: Omit<DentalFile, 'id'> = {
+      // Prepare file data
+      const fileData: DentalFile = {
+        id: fileId,
         url,
         name: file.name,
         type: 'Unsorted',
@@ -56,13 +66,15 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fileType: type
       };
 
-      const collectionPath = `patients/${patientId}/${folder}`;
-      const docRef = await addDoc(collection(db, collectionPath), fileData);
+      // Save to Firestore
+      console.log('Saving to Firestore:', { collectionPath: `patients/${patientId}/${folder}`, fileData });
+      const docRef = doc(db, `patients/${patientId}/${folder}`, fileId);
+      await setDoc(docRef, fileData);
 
-      return { id: docRef.id, ...fileData };
+      return fileData;
     } catch (error) {
-      console.error('Error uploading file:', error);
-      throw new Error('Failed to upload file');
+      console.error('Error in uploadFile:', error);
+      throw error;
     }
   };
 
