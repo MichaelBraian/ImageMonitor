@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFiles } from '../context/FileContext';
 import { ThreeDViewer } from '../components/ThreeDViewer';
-import { Editor2D } from '../components/Editor2D';
+import Editor2D from '../components/editor/Editor2D';
 import { DentalFile } from '../types';
 import { ArrowLeft } from 'lucide-react';
 

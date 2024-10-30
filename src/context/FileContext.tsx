@@ -13,6 +13,7 @@ interface FileContextType {
   updateFileImage: (fileId: string, blob: Blob) => Promise<void>;
   refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
   getDownloadURL: (urlOrRef: string | StorageReference) => Promise<string>;
+  getFile: (fileId: string) => Promise<DentalFile | null>;
 }
 
 export const FileContext = createContext<FileContextType>({
@@ -23,6 +24,7 @@ export const FileContext = createContext<FileContextType>({
   updateFileImage: async () => {},
   refreshPatientFiles: async () => [],
   getDownloadURL: async () => '',
+  getFile: async () => null,
 });
 
 export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -250,6 +252,36 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getFile = async (fileId: string): Promise<DentalFile | null> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      // Search in both images and models collections across all patients
+      const patientsRef = collection(db, 'patients');
+      const patientsSnapshot = await getDocs(patientsRef);
+
+      for (const patientDoc of patientsSnapshot.docs) {
+        // Check images collection
+        const imageDoc = await getDoc(doc(db, `patients/${patientDoc.id}/images/${fileId}`));
+        if (imageDoc.exists()) {
+          return { id: imageDoc.id, ...imageDoc.data() } as DentalFile;
+        }
+
+        // Check models collection
+        const modelDoc = await getDoc(doc(db, `patients/${patientDoc.id}/models/${fileId}`));
+        if (modelDoc.exists()) {
+          return { id: modelDoc.id, ...modelDoc.data() } as DentalFile;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      throw error;
+    }
+  };
+
   return (
     <FileContext.Provider value={{
       uploadFile,
@@ -259,6 +291,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateFileImage,
       refreshPatientFiles,
       getDownloadURL,
+      getFile,
     }}>
       {children}
     </FileContext.Provider>
