@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL as firebaseGetDownloadURL, deleteObject, StorageReference } from 'firebase/storage';
 import { db, storage, auth } from '../firebase/config';
 import { DentalFile, FileType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,9 +12,18 @@ interface FileContextType {
   updateFile: (fileId: string, updates: Partial<DentalFile>) => Promise<void>;
   updateFileImage: (fileId: string, blob: Blob) => Promise<void>;
   refreshPatientFiles: (patientId: string) => Promise<DentalFile[]>;
+  getDownloadURL: (urlOrRef: string | StorageReference) => Promise<string>;
 }
 
-const FileContext = createContext<FileContextType | undefined>(undefined);
+export const FileContext = createContext<FileContextType>({
+  uploadFile: async () => ({ id: '', url: '', name: '', type: 'Unsorted', format: '2D', userId: '', dentistId: '', patientId: '', createdAt: '', group: 'Unsorted', date: '', fileType: '2D' }),
+  getPatientFiles: async () => [],
+  deleteFile: async () => {},
+  updateFile: async () => {},
+  updateFileImage: async () => {},
+  refreshPatientFiles: async () => [],
+  getDownloadURL: async () => '',
+});
 
 export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const uploadFile = async (file: File, patientId: string, type: FileType): Promise<DentalFile> => {
@@ -228,6 +237,19 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return await getPatientFiles(patientId);
   };
 
+  const getDownloadURL = async (urlOrRef: string | StorageReference): Promise<string> => {
+    try {
+      if (typeof urlOrRef === 'string') {
+        return urlOrRef;
+      }
+      // If it's a StorageReference, use Firebase's getDownloadURL
+      return await firebaseGetDownloadURL(urlOrRef);
+    } catch (error) {
+      console.error('Error getting download URL:', error);
+      throw error;
+    }
+  };
+
   return (
     <FileContext.Provider value={{
       uploadFile,
@@ -235,7 +257,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deleteFile,
       updateFile,
       updateFileImage,
-      refreshPatientFiles
+      refreshPatientFiles,
+      getDownloadURL,
     }}>
       {children}
     </FileContext.Provider>
